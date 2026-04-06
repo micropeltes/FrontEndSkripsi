@@ -2,8 +2,8 @@
 import { cors } from "hono/cors";
 import { serve } from "@hono/node-server";
 
-const SOURCE_API = "http://45.126.43.35:5000/api/data";
-const PORT = 8000;
+const SOURCE_API = "http://localhost:8000/data";
+const PORT = 3000;
 
 const app = new Hono();
 
