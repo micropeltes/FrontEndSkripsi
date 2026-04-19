@@ -23,7 +23,8 @@ const SENSORS = [
 ];
 
 const RANGE_OPTIONS = [5, 10, 20, "all"];
-const RECENT_LIMIT_OPTIONS = [10, 20, 50, "all"];
+const RECENT_LIMIT_OPTIONS = [5, 10, 20, "all"];
+const API_QUERY_LIMIT_OPTIONS = [10, 25, 50, 100];
 const MA_WINDOW_OPTIONS = [3, 5, 7, 10];
 const POLL_MS_NORMAL = 5000;
 const POLL_MS_LOW_POWER = 12000;
@@ -339,6 +340,9 @@ export default function DashboardPage({ lowPower = false, fluid = false }) {
   const [recentLimit, setRecentLimit] = useState(10);
   const [recentLimitInput, setRecentLimitInput] = useState("10");
   const [recentLimitError, setRecentLimitError] = useState("");
+  const [queryLimit, setQueryLimit] = useState(50);
+  const [queryLimitInput, setQueryLimitInput] = useState("50");
+  const [queryLimitError, setQueryLimitError] = useState("");
   const [selectedDevice, setSelectedDevice] = useState("all");
   const [movingAvgWindow, setMovingAvgWindow] = useState(3);
 
@@ -417,6 +421,8 @@ export default function DashboardPage({ lowPower = false, fluid = false }) {
     if (recentLimit === "all") return deviceFilteredItemsDesc;
     return deviceFilteredItemsDesc.slice(0, recentLimit);
   }, [deviceFilteredItemsDesc, recentLimit]);
+  const isRecentLimitOverAvailable =
+    typeof recentLimit === "number" && recentLimit > deviceFilteredItemsDesc.length;
 
   const timelineItems = useMemo(() => [...visibleItemsDesc].reverse(), [visibleItemsDesc]);
   const timelineLabels = useMemo(
@@ -429,6 +435,8 @@ export default function DashboardPage({ lowPower = false, fluid = false }) {
   const customActive = typeof range === "number" && !RANGE_OPTIONS.includes(range);
   const customRecentActive =
     typeof recentLimit === "number" && !RECENT_LIMIT_OPTIONS.includes(recentLimit);
+  const queryLimitCustomActive =
+    typeof queryLimit === "number" && !API_QUERY_LIMIT_OPTIONS.includes(queryLimit);
   const hasTimeFilter = Boolean(appliedTimeRange.start || appliedTimeRange.end);
 
   const sensorSeries = useMemo(() => {
@@ -466,21 +474,20 @@ export default function DashboardPage({ lowPower = false, fluid = false }) {
     abortRef.current = controller;
 
     try {
-      const response = await fetch("/api/data", { signal: controller.signal });
+      const query = new URLSearchParams();
+      if (selectedDevice !== "all") {
+        query.set("device_id", selectedDevice);
+      }
+      if (Number.isFinite(queryLimit) && queryLimit > 0) {
+        query.set("limit", String(queryLimit));
+      }
+
+      const endpoint = query.size ? `/api/data?${query.toString()}` : "/api/data";
+      const response = await fetch(endpoint, { signal: controller.signal });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
       const json = await response.json();
-
-      setPayload((prev) => {
-        const prevHead = prev?.items?.[0]?.id;
-        const nextHead = json?.items?.[0]?.id;
-
-        if (prevHead === nextHead && prev?.count === json?.count) {
-          return prev;
-        }
-
-        return json;
-      });
+      setPayload(json);
 
       setError("");
     } catch (err) {
@@ -495,12 +502,13 @@ export default function DashboardPage({ lowPower = false, fluid = false }) {
         setLoading(false);
       }
     }
-  }, []);
+  }, [queryLimit, selectedDevice]);
 
   useEffect(() => {
     loadData(false);
 
     return () => {
+      fetchInFlightRef.current = false;
       abortRef.current?.abort();
     };
   }, [loadData]);
@@ -549,6 +557,23 @@ export default function DashboardPage({ lowPower = false, fluid = false }) {
 
     setRange(parsed);
     setCustomRangeError("");
+  }
+
+  function handlePresetQueryLimit(option) {
+    setQueryLimit(option);
+    setQueryLimitInput(String(option));
+    setQueryLimitError("");
+  }
+
+  function applyQueryLimit() {
+    const parsed = Number.parseInt(queryLimitInput, 10);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      setQueryLimitError("Isi limit query valid (minimal 1)");
+      return;
+    }
+
+    setQueryLimit(parsed);
+    setQueryLimitError("");
   }
 
   function handleRecentPresetLimit(option) {
@@ -736,6 +761,47 @@ export default function DashboardPage({ lowPower = false, fluid = false }) {
                   </div>
 
                   <div className="range-buttons">
+                    {API_QUERY_LIMIT_OPTIONS.map((option) => (
+                      <Button
+                        type="button"
+                        key={`query-limit-${option}`}
+                        variant={option === queryLimit ? "default" : "outline"}
+                        className={option === queryLimit ? "active" : ""}
+                        onClick={() => handlePresetQueryLimit(option)}
+                      >
+                        Query {option}
+                      </Button>
+                    ))}
+                  </div>
+
+                  <div className="custom-range">
+                    <Input
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={queryLimitInput}
+                      onChange={(event) => setQueryLimitInput(event.target.value)}
+                      placeholder="Custom limit query API"
+                    />
+                    <Button
+                      type="button"
+                      onClick={applyQueryLimit}
+                      variant={queryLimitCustomActive ? "default" : "outline"}
+                      className={queryLimitCustomActive ? "active" : ""}
+                    >
+                      Terapkan Query
+                    </Button>
+                  </div>
+                  {queryLimitError && <p className="error compact">{queryLimitError}</p>}
+                  {!queryLimitError && (
+                    <p className="filter-pill">
+                      Query API aktif: device = {selectedDevice === "all" ? "all" : selectedDevice}
+                      {" | "}
+                      limit = {queryLimit}
+                    </p>
+                  )}
+
+                  <div className="range-buttons">
                     {RANGE_OPTIONS.map((option) => (
                       <Button
                         type="button"
@@ -850,10 +916,11 @@ export default function DashboardPage({ lowPower = false, fluid = false }) {
         <Card className="panel">
           <CardHeader>
             <CardTitle>
-              Recent Sensor Data ({recentLimit === "all" ? "Semua" : recentLimit})
+              Recent Sensor Data ({recentItemsDesc.length})
             </CardTitle>
             <CardDescription>
               Menampilkan {recentItemsDesc.length} data terbaru setelah filter device dan waktu.
+              Data tersedia dari API saat ini: {deviceFilteredItemsDesc.length}.
             </CardDescription>
             <Separator />
           </CardHeader>
@@ -891,6 +958,12 @@ export default function DashboardPage({ lowPower = false, fluid = false }) {
               </Button>
             </div>
             {recentLimitError && <p className="error compact">{recentLimitError}</p>}
+            {!recentLimitError && isRecentLimitOverAvailable && (
+              <p className="info">
+                Batas diminta {recentLimit} data, tapi API saat ini hanya menyediakan{" "}
+                {deviceFilteredItemsDesc.length} data.
+              </p>
+            )}
 
             <div className="table-wrap desktop-table">
               <table>

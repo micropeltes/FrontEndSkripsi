@@ -15,7 +15,18 @@ app.get("/api/health", (c) => {
 
 app.get("/api/data", async (c) => {
   try {
-    const response = await fetch(SOURCE_API);
+    const upstreamUrl = new URL(SOURCE_API);
+    const deviceId = c.req.query("device_id");
+    const limit = c.req.query("limit") ?? c.req.query("jumlah");
+
+    if (deviceId) {
+      upstreamUrl.searchParams.set("device_id", deviceId);
+    }
+    if (limit) {
+      upstreamUrl.searchParams.set("limit", limit);
+    }
+
+    const response = await fetch(upstreamUrl);
 
     if (!response.ok) {
       return c.json(
