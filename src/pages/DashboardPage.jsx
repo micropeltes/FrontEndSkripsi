@@ -23,6 +23,7 @@ const SENSORS = [
 ];
 
 const RANGE_OPTIONS = [5, 10, 20, "all"];
+const RECENT_LIMIT_OPTIONS = [10, 20, 50, "all"];
 const MA_WINDOW_OPTIONS = [3, 5, 7, 10];
 const POLL_MS_NORMAL = 5000;
 const POLL_MS_LOW_POWER = 12000;
@@ -34,10 +35,62 @@ function getStatus(mq135Value) {
 }
 
 function parseTimeMs(value) {
-  if (!value) return null;
+  if (value === null || value === undefined || value === "") return null;
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
 
-  const ms = new Date(value).getTime();
-  return Number.isFinite(ms) ? ms : null;
+  if (value instanceof Date) {
+    const dateMs = value.getTime();
+    return Number.isFinite(dateMs) ? dateMs : null;
+  }
+
+  const raw = String(value).trim();
+  if (!raw) return null;
+
+  const directMs = Date.parse(raw);
+  if (Number.isFinite(directMs)) {
+    return directMs;
+  }
+
+  const normalized = raw
+    .replace(/\s+/, "T")
+    .replace(/(\.\d{3})\d+/, "$1")
+    .replace(/([+-]\d{2})(\d{2})$/, "$1:$2");
+  const normalizedMs = Date.parse(normalized);
+  if (Number.isFinite(normalizedMs)) {
+    return normalizedMs;
+  }
+
+  const localMatch = normalized.match(
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?$/
+  );
+  if (!localMatch) return null;
+
+  const [, year, month, day, hour, minute, second = "0", millisecond = "0"] = localMatch;
+  const localMs = new Date(
+    Number.parseInt(year, 10),
+    Number.parseInt(month, 10) - 1,
+    Number.parseInt(day, 10),
+    Number.parseInt(hour, 10),
+    Number.parseInt(minute, 10),
+    Number.parseInt(second, 10),
+    Number.parseInt(millisecond.padEnd(3, "0"), 10)
+  ).getTime();
+
+  return Number.isFinite(localMs) ? localMs : null;
+}
+
+function parseBoundaryTimeMs(value, boundary = "start") {
+  const ms = parseTimeMs(value);
+  if (ms === null) return null;
+
+  if (boundary === "end" && typeof value === "string") {
+    const isMinutePrecisionLocal = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value.trim());
+    if (isMinutePrecisionLocal) {
+      return ms + 59_999;
+    }
+  }
+
+  return ms;
 }
 
 function formatTime(isoString) {
@@ -283,6 +336,9 @@ export default function DashboardPage({ lowPower = false, fluid = false }) {
   const [range, setRange] = useState(10);
   const [customRangeInput, setCustomRangeInput] = useState("15");
   const [customRangeError, setCustomRangeError] = useState("");
+  const [recentLimit, setRecentLimit] = useState(10);
+  const [recentLimitInput, setRecentLimitInput] = useState("10");
+  const [recentLimitError, setRecentLimitError] = useState("");
   const [selectedDevice, setSelectedDevice] = useState("all");
   const [movingAvgWindow, setMovingAvgWindow] = useState(3);
 
@@ -309,8 +365,8 @@ export default function DashboardPage({ lowPower = false, fluid = false }) {
   }, [payload]);
 
   const timeFilteredItemsDesc = useMemo(() => {
-    const startMs = parseTimeMs(appliedTimeRange.start);
-    const endMs = parseTimeMs(appliedTimeRange.end);
+    const startMs = parseBoundaryTimeMs(appliedTimeRange.start, "start");
+    const endMs = parseBoundaryTimeMs(appliedTimeRange.end, "end");
 
     if (startMs === null && endMs === null) {
       return sortedItemsDesc;
@@ -357,6 +413,10 @@ export default function DashboardPage({ lowPower = false, fluid = false }) {
     if (range === "all") return deviceFilteredItemsDesc;
     return deviceFilteredItemsDesc.slice(0, range);
   }, [range, deviceFilteredItemsDesc]);
+  const recentItemsDesc = useMemo(() => {
+    if (recentLimit === "all") return deviceFilteredItemsDesc;
+    return deviceFilteredItemsDesc.slice(0, recentLimit);
+  }, [deviceFilteredItemsDesc, recentLimit]);
 
   const timelineItems = useMemo(() => [...visibleItemsDesc].reverse(), [visibleItemsDesc]);
   const timelineLabels = useMemo(
@@ -367,6 +427,8 @@ export default function DashboardPage({ lowPower = false, fluid = false }) {
   const latest = deviceFilteredItemsDesc[0];
   const status = latest ? getStatus(latest.mq135) : null;
   const customActive = typeof range === "number" && !RANGE_OPTIONS.includes(range);
+  const customRecentActive =
+    typeof recentLimit === "number" && !RECENT_LIMIT_OPTIONS.includes(recentLimit);
   const hasTimeFilter = Boolean(appliedTimeRange.start || appliedTimeRange.end);
 
   const sensorSeries = useMemo(() => {
@@ -489,9 +551,29 @@ export default function DashboardPage({ lowPower = false, fluid = false }) {
     setCustomRangeError("");
   }
 
+  function handleRecentPresetLimit(option) {
+    setRecentLimit(option);
+    setRecentLimitError("");
+
+    if (typeof option === "number") {
+      setRecentLimitInput(String(option));
+    }
+  }
+
+  function applyRecentLimit() {
+    const parsed = Number.parseInt(recentLimitInput, 10);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      setRecentLimitError("Isi jumlah data valid (minimal 1)");
+      return;
+    }
+
+    setRecentLimit(parsed);
+    setRecentLimitError("");
+  }
+
   function applyTimeRange() {
-    const startMs = parseTimeMs(timeStartInput);
-    const endMs = parseTimeMs(timeEndInput);
+    const startMs = parseBoundaryTimeMs(timeStartInput, "start");
+    const endMs = parseBoundaryTimeMs(timeEndInput, "end");
 
     if (!timeStartInput && !timeEndInput) {
       setTimeRangeError("Isi minimal start atau end time.");
@@ -767,10 +849,49 @@ export default function DashboardPage({ lowPower = false, fluid = false }) {
 
         <Card className="panel">
           <CardHeader>
-            <CardTitle>Recent Sensor Data ({visibleItemsDesc.length})</CardTitle>
+            <CardTitle>
+              Recent Sensor Data ({recentLimit === "all" ? "Semua" : recentLimit})
+            </CardTitle>
+            <CardDescription>
+              Menampilkan {recentItemsDesc.length} data terbaru setelah filter device dan waktu.
+            </CardDescription>
             <Separator />
           </CardHeader>
           <CardContent>
+            <div className="range-buttons">
+              {RECENT_LIMIT_OPTIONS.map((option) => (
+                <Button
+                  type="button"
+                  key={`recent-${option}`}
+                  variant={option === recentLimit ? "default" : "outline"}
+                  className={option === recentLimit ? "active" : ""}
+                  onClick={() => handleRecentPresetLimit(option)}
+                >
+                  {option === "all" ? "Semua" : `${option} data`}
+                </Button>
+              ))}
+            </div>
+
+            <div className="custom-range">
+              <Input
+                type="number"
+                min="1"
+                step="1"
+                value={recentLimitInput}
+                onChange={(event) => setRecentLimitInput(event.target.value)}
+                placeholder="Jumlah data recent"
+              />
+              <Button
+                type="button"
+                onClick={applyRecentLimit}
+                variant={customRecentActive ? "default" : "outline"}
+                className={customRecentActive ? "active" : ""}
+              >
+                Terapkan
+              </Button>
+            </div>
+            {recentLimitError && <p className="error compact">{recentLimitError}</p>}
+
             <div className="table-wrap desktop-table">
               <table>
                 <thead>
@@ -787,7 +908,7 @@ export default function DashboardPage({ lowPower = false, fluid = false }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {visibleItemsDesc.map((item) => (
+                  {recentItemsDesc.map((item) => (
                     <tr key={item.id}>
                       <td>{item.id}</td>
                       <td>{item.device_id}</td>
@@ -805,7 +926,7 @@ export default function DashboardPage({ lowPower = false, fluid = false }) {
             </div>
 
             <div className="mobile-list">
-              {visibleItemsDesc.map((item) => (
+              {recentItemsDesc.map((item) => (
                 <article key={item.id} className="mobile-row">
                   <div className="mobile-row-head">
                     <strong>#{item.id}</strong>
