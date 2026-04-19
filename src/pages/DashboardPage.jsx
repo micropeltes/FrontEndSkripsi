@@ -582,6 +582,12 @@ export default function DashboardPage({ lowPower = false, fluid = false }) {
 
     if (typeof option === "number") {
       setRecentLimitInput(String(option));
+
+      if (!Number.isFinite(queryLimit) || option > queryLimit) {
+        setQueryLimit(option);
+        setQueryLimitInput(String(option));
+        setQueryLimitError("");
+      }
     }
   }
 
@@ -594,6 +600,12 @@ export default function DashboardPage({ lowPower = false, fluid = false }) {
 
     setRecentLimit(parsed);
     setRecentLimitError("");
+
+    if (!Number.isFinite(queryLimit) || parsed > queryLimit) {
+      setQueryLimit(parsed);
+      setQueryLimitInput(String(parsed));
+      setQueryLimitError("");
+    }
   }
 
   function applyTimeRange() {
