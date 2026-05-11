@@ -28,6 +28,8 @@ const API_QUERY_LIMIT_OPTIONS = [10, 25, 50, 100];
 const MA_WINDOW_OPTIONS = [3, 5, 7, 10];
 const POLL_MS_NORMAL = 5000;
 const POLL_MS_LOW_POWER = 12000;
+const DELAY_API_ENDPOINT = "http://45.126.43.35:5000/api/delay";
+const DELAY_OFFSET_MS = 1000;
 
 function getStatus(mq135Value) {
   if (mq135Value < 300) return { text: "NORMAL", className: "status-normal" };
@@ -126,6 +128,12 @@ function formatNumber(value, digits = 2) {
 
   const num = Number(value);
   return Number.isFinite(num) ? num.toFixed(digits) : "-";
+}
+
+function formatDelaySeconds(delayMs) {
+  const num = Number(delayMs);
+  if (!Number.isFinite(num)) return "-";
+  return `${(num / 1000).toFixed(3)} s`;
 }
 
 function clamp(value, min, max) {
@@ -331,8 +339,11 @@ const SensorChart = memo(function SensorChart({
 
 export default function DashboardPage({ lowPower = false, fluid = false }) {
   const [payload, setPayload] = useState(null);
+  const [delayPayload, setDelayPayload] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [delayLoading, setDelayLoading] = useState(true);
   const [error, setError] = useState("");
+  const [delayError, setDelayError] = useState("");
 
   const [range, setRange] = useState(10);
   const [customRangeInput, setCustomRangeInput] = useState("15");
@@ -355,7 +366,9 @@ export default function DashboardPage({ lowPower = false, fluid = false }) {
   const [pageVisible, setPageVisible] = useState(!document.hidden);
 
   const fetchInFlightRef = useRef(false);
+  const delayFetchInFlightRef = useRef(false);
   const abortRef = useRef(null);
+  const delayAbortRef = useRef(null);
 
   const pollIntervalMs = lowPower ? POLL_MS_LOW_POWER : POLL_MS_NORMAL;
 
@@ -367,6 +380,25 @@ export default function DashboardPage({ lowPower = false, fluid = false }) {
       .filter((item) => item.__ts !== null)
       .sort((a, b) => b.__ts - a.__ts);
   }, [payload]);
+
+  const delayItemsDesc = useMemo(() => {
+    const items = delayPayload?.items ?? [];
+
+    return items
+      .map((item) => {
+        const rawDiffMs = Number(item.diff_ms);
+        const adjustedDiffMs = Number.isFinite(rawDiffMs)
+          ? Math.max(0, rawDiffMs - DELAY_OFFSET_MS)
+          : null;
+
+        return {
+          ...item,
+          __ts: parseTimeMs(item.created_at),
+          adjusted_diff_ms: adjustedDiffMs
+        };
+      })
+      .sort((a, b) => (b.__ts ?? 0) - (a.__ts ?? 0));
+  }, [delayPayload]);
 
   const timeFilteredItemsDesc = useMemo(() => {
     const startMs = parseBoundaryTimeMs(appliedTimeRange.start, "start");
@@ -431,6 +463,7 @@ export default function DashboardPage({ lowPower = false, fluid = false }) {
   );
 
   const latest = deviceFilteredItemsDesc[0];
+  const latestDelay = delayItemsDesc[0];
   const status = latest ? getStatus(latest.mq135) : null;
   const customActive = typeof range === "number" && !RANGE_OPTIONS.includes(range);
   const customRecentActive =
@@ -504,14 +537,48 @@ export default function DashboardPage({ lowPower = false, fluid = false }) {
     }
   }, [queryLimit, selectedDevice]);
 
+  const loadDelayData = useCallback(async (silent = false) => {
+    if (delayFetchInFlightRef.current) {
+      return;
+    }
+
+    delayFetchInFlightRef.current = true;
+
+    const controller = new AbortController();
+    delayAbortRef.current = controller;
+
+    try {
+      const response = await fetch(DELAY_API_ENDPOINT, { signal: controller.signal });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const json = await response.json();
+      setDelayPayload(json);
+      setDelayError("");
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") {
+        return;
+      }
+
+      setDelayError(err instanceof Error ? err.message : "Unknown error");
+    } finally {
+      delayFetchInFlightRef.current = false;
+      if (!silent) {
+        setDelayLoading(false);
+      }
+    }
+  }, []);
+
   useEffect(() => {
     loadData(false);
+    loadDelayData(false);
 
     return () => {
       fetchInFlightRef.current = false;
       abortRef.current?.abort();
+      delayFetchInFlightRef.current = false;
+      delayAbortRef.current?.abort();
     };
-  }, [loadData]);
+  }, [loadData, loadDelayData]);
 
   useEffect(() => {
     function onVisibilityChange() {
@@ -520,12 +587,13 @@ export default function DashboardPage({ lowPower = false, fluid = false }) {
 
       if (visible && !paused) {
         loadData(true);
+        loadDelayData(true);
       }
     }
 
     document.addEventListener("visibilitychange", onVisibilityChange);
     return () => document.removeEventListener("visibilitychange", onVisibilityChange);
-  }, [loadData, paused]);
+  }, [loadData, loadDelayData, paused]);
 
   useEffect(() => {
     if (paused || !pageVisible) {
@@ -534,10 +602,11 @@ export default function DashboardPage({ lowPower = false, fluid = false }) {
 
     const timer = setInterval(() => {
       loadData(true);
+      loadDelayData(true);
     }, pollIntervalMs);
 
     return () => clearInterval(timer);
-  }, [paused, pageVisible, pollIntervalMs, loadData]);
+  }, [paused, pageVisible, pollIntervalMs, loadData, loadDelayData]);
 
   function handlePresetRange(option) {
     setRange(option);
@@ -907,6 +976,107 @@ export default function DashboardPage({ lowPower = false, fluid = false }) {
 
         {loading && <p className="info">Loading data...</p>}
         {error && <p className="error">Gagal ambil data: {error}</p>}
+
+        <Card className="panel">
+          <CardHeader>
+            <CardTitle>Panel Delay Device</CardTitle>
+            <CardDescription>
+              Data dari endpoint delay dengan pengurangan 1 detik ({DELAY_OFFSET_MS} ms) pada nilai delay.
+            </CardDescription>
+            <Separator />
+          </CardHeader>
+          <CardContent>
+            {delayLoading && <p className="info">Loading delay data...</p>}
+            {delayError && <p className="error compact">Gagal ambil data delay: {delayError}</p>}
+
+            {!delayLoading && !delayError && latestDelay && (
+              <div className="cards">
+                <Card className="card">
+                  <CardHeader>
+                    <CardDescription>Delay Setelah Dikurangi 1s</CardDescription>
+                    <CardTitle className="value">{formatDelaySeconds(latestDelay.adjusted_diff_ms)}</CardTitle>
+                  </CardHeader>
+                </Card>
+                <Card className="card">
+                  <CardHeader>
+                    <CardDescription>Delay Asli</CardDescription>
+                    <CardTitle className="value">{formatDelaySeconds(latestDelay.diff_ms)}</CardTitle>
+                  </CardHeader>
+                </Card>
+                <Card className="card">
+                  <CardHeader>
+                    <CardDescription>Device</CardDescription>
+                    <CardTitle className="value">{latestDelay.device_id ?? "-"}</CardTitle>
+                  </CardHeader>
+                </Card>
+                <Card className="card">
+                  <CardHeader>
+                    <CardDescription>Created At</CardDescription>
+                    <CardTitle className="value small">{formatTime(latestDelay.created_at)}</CardTitle>
+                  </CardHeader>
+                </Card>
+              </div>
+            )}
+
+            {!delayLoading && !delayError && !delayItemsDesc.length && (
+              <p className="info">Belum ada data delay.</p>
+            )}
+
+            {!delayLoading && !delayError && delayItemsDesc.length > 0 && (
+              <>
+                <div className="table-wrap desktop-table">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Device</th>
+                        <th>Sensor Data ID</th>
+                        <th>Delay (Asli)</th>
+                        <th>Delay (-1s)</th>
+                        <th>Device Time</th>
+                        <th>Received Time</th>
+                        <th>Created At</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {delayItemsDesc.map((item) => (
+                        <tr key={item.id}>
+                          <td>{item.id}</td>
+                          <td>{item.device_id}</td>
+                          <td>{item.sensor_data_id}</td>
+                          <td>{formatDelaySeconds(item.diff_ms)}</td>
+                          <td>{formatDelaySeconds(item.adjusted_diff_ms)}</td>
+                          <td>{formatTime(item.device_timestamp_ms)}</td>
+                          <td>{formatTime(item.received_timestamp_ms)}</td>
+                          <td>{formatTime(item.created_at)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="mobile-list">
+                  {delayItemsDesc.map((item) => (
+                    <article key={item.id} className="mobile-row">
+                      <div className="mobile-row-head">
+                        <strong>#{item.id}</strong>
+                        <span>{item.device_id}</span>
+                      </div>
+                      <div className="mobile-row-grid">
+                        <p>Sensor Data ID: {item.sensor_data_id}</p>
+                        <p>Delay Asli: {formatDelaySeconds(item.diff_ms)}</p>
+                        <p>Delay -1s: {formatDelaySeconds(item.adjusted_diff_ms)}</p>
+                        <p>Device Time: {formatTime(item.device_timestamp_ms)}</p>
+                        <p>Received Time: {formatTime(item.received_timestamp_ms)}</p>
+                      </div>
+                      <small>{formatTime(item.created_at)}</small>
+                    </article>
+                  ))}
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
 
         <section className="sensor-grid">
           {sensorSeries.map((series) => (
