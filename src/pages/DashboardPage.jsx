@@ -24,7 +24,7 @@ const SENSOR_LABELS = {
 const DEFAULT_DEVICE_ID = "ESP-00";
 const DEFAULT_POLL_MS = 4000;
 const LOW_POWER_POLL_MS = 5000;
-const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "/api").replace(/\/+$/, "");
+const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000/api").replace(/\/+$/, "");
 
 function toNumberOrNull(value) {
   if (value === null || value === undefined || value === "") {
