@@ -13,7 +13,7 @@ Production menggunakan reverse proxy Nginx:
 Konsekuensi di frontend:
 
 - Selalu panggil API dengan relative path `/api/*`
-- Contoh: `/api/data`, `/api/delay`
+- Contoh: `/api/v1/sensors/latest?device_id=ESP-00`
 - Jangan hardcode host/IP backend di kode frontend
 
 ## Menjalankan Development
@@ -65,5 +65,5 @@ npm run dev:legacy-proxy
 Wajib set environment variable `SOURCE_API` terlebih dulu, contoh:
 
 ```powershell
-$env:SOURCE_API="http://127.0.0.1:8000/api/data"; npm run dev:legacy-proxy
+$env:SOURCE_API="http://127.0.0.1:8000/api/v1/sensors/latest"; npm run dev:legacy-proxy
 ```
