@@ -16,6 +16,19 @@ Konsekuensi di frontend:
 - Contoh: `/api/v1/sensors/latest?device_id=ESP-00`
 - Jangan hardcode host/IP backend di kode frontend
 
+Konfigurasi env frontend:
+
+```env
+VITE_API_BASE=/api
+```
+
+Gunakan `.env.example` sebagai template.
+
+Nilai ini dipakai langsung oleh dashboard untuk membentuk endpoint:
+
+- `/api/v1/sensors/latest?device_id=ESP-00`
+- `/api/v1/sensors/{sensor}/latest?device_id=ESP-00`
+
 ## Menjalankan Development
 
 1. Install dependency

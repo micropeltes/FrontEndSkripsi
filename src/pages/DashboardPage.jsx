@@ -24,7 +24,9 @@ const SENSOR_LABELS = {
 const DEFAULT_DEVICE_ID = "ESP-00";
 const DEFAULT_POLL_MS = 4000;
 const LOW_POWER_POLL_MS = 5000;
-const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "/api").replace(/\/+$/, "");
+const API_BASE = (import.meta.env.VITE_API_BASE ?? "/api").replace(/\/+$/, "");
+const parsedTimeoutMs = Number.parseInt(import.meta.env.VITE_API_TIMEOUT_MS ?? "10000", 10);
+const REQUEST_TIMEOUT_MS = Number.isFinite(parsedTimeoutMs) && parsedTimeoutMs > 0 ? parsedTimeoutMs : 10000;
 
 function toNumberOrNull(value) {
   if (value === null || value === undefined || value === "") {
@@ -205,20 +207,49 @@ function getApiErrorMessage(result, fallbackText) {
 }
 
 async function fetchJson(url, signal) {
-  const response = await fetch(url, { signal });
-  let payload = null;
+  const timeoutController = new AbortController();
+  const onParentAbort = () => timeoutController.abort();
 
-  try {
-    payload = await response.json();
-  } catch {
-    payload = null;
+  if (signal?.aborted) {
+    timeoutController.abort();
+  } else if (signal) {
+    signal.addEventListener("abort", onParentAbort, { once: true });
   }
 
-  return {
-    ok: response.ok,
-    status: response.status,
-    payload
-  };
+  const timeoutId = setTimeout(() => {
+    timeoutController.abort();
+  }, REQUEST_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(url, { signal: timeoutController.signal });
+    let payload = null;
+
+    try {
+      payload = await response.json();
+    } catch {
+      payload = null;
+    }
+
+    return {
+      ok: response.ok,
+      status: response.status,
+      payload
+    };
+  } catch (error) {
+    const timeoutHappened = timeoutController.signal.aborted && !signal?.aborted;
+    if (timeoutHappened) {
+      const timeoutError = new Error(`Request timeout after ${REQUEST_TIMEOUT_MS} ms`);
+      timeoutError.name = "TimeoutError";
+      throw timeoutError;
+    }
+
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+    if (signal) {
+      signal.removeEventListener("abort", onParentAbort);
+    }
+  }
 }
 
 function buildInitialDetailState() {
