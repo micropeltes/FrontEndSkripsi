@@ -343,7 +343,7 @@ export async function fetchLatestAllSensors(
   params: { deviceId?: string; sensor?: string; signal?: AbortSignal } = {}
 ): Promise<SensorLatestAllPayload> {
   const payload = await fetchJson(
-    buildUrl("/sensors/latest", {
+    buildUrl("/api/v1/sensors/latest", {
       device_id: sanitizeDeviceId(params.deviceId ?? ""),
       sensor: toStringValue(params.sensor)
     }),
@@ -387,7 +387,7 @@ export async function fetchSensorHistory(
 ): Promise<SensorHistoryPayload> {
   const safeLimit = sanitizeHistoryLimit(params.limit ?? 50, 50);
   const payload = await fetchJson(
-    buildUrl(`/sensors/latest/${safeLimit}`, {
+    buildUrl(`/api/v1/sensors/latest/${safeLimit}`, {
       device_id: sanitizeDeviceId(params.deviceId ?? "")
     }),
     {
