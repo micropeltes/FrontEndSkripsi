@@ -249,7 +249,7 @@ async function fetchJson(url: string, options: RequestInit = {}): Promise<unknow
 }
 
 export async function fetchHealth(signal?: AbortSignal): Promise<HealthPayload> {
-  const candidates = [buildUrl("/health"), "/api/health"];
+  const candidates = ["/health"];
   let lastError: unknown = null;
 
   for (const url of candidates) {
