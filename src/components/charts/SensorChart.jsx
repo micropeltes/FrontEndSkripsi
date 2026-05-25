@@ -1,5 +1,5 @@
-import { memo, useEffect, useMemo, useState } from "react";
-import ReactApexChart from "react-apexcharts";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
+import ApexCharts from "apexcharts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { computeMovingAverage } from "@/utils/movingAverage";
 
@@ -68,6 +68,8 @@ function SensorChart({
   movingAverageWindow = 5,
   movingAverageEnabled = true
 }) {
+  const chartContainerRef = useRef(null);
+  const apexInstanceRef = useRef(null);
   const [themeTokens, setThemeTokens] = useState(() => readThemeTokens());
 
   useEffect(() => {
@@ -190,6 +192,41 @@ function SensorChart({
     [movingAverageEnabled, movingAverageWindow, rawSeriesColor, sensorKey, themeTokens]
   );
 
+  useEffect(() => {
+    if (!chartContainerRef.current) {
+      return undefined;
+    }
+
+    const instance = new ApexCharts(chartContainerRef.current, {
+      ...options,
+      series
+    });
+
+    apexInstanceRef.current = instance;
+    instance.render();
+
+    return () => {
+      apexInstanceRef.current?.destroy();
+      apexInstanceRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!apexInstanceRef.current) {
+      return;
+    }
+
+    apexInstanceRef.current.updateOptions(
+      {
+        ...options,
+        series
+      },
+      false,
+      false,
+      false
+    );
+  }, [options, series]);
+
   return (
     <Card className="panel sensor-chart-card">
       <CardHeader>
@@ -199,7 +236,7 @@ function SensorChart({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <ReactApexChart options={options} series={series} type="line" height={280} />
+        <div ref={chartContainerRef} style={{ minHeight: 280 }} />
         <div className="sensor-chart-stats">
           <span>Data asli terakhir: {formatNumber(Number(latestRaw))}</span>
           <span>
