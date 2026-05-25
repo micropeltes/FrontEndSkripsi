@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
+  ActivityHeartIcon,
   Menu01Icon,
   Moon01Icon,
   SunIcon,
@@ -9,16 +10,30 @@ import {
 } from "@untitledui/icons-react/outline";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+
+const EXTRA_LINKS = [
+  { to: "/monitoring", label: "Latest" },
+  { to: "/history", label: "History" },
+  { to: "/tools/convert", label: "Convert ADC" },
+  { to: "/calibration", label: "Calibration" }
+];
+
 export default function Navbar({
   theme,
   onToggleTheme,
   activeSection,
   scrollProgress = 0,
+  healthStatus = "checking",
+  healthMessage = "",
   onNavigateLanding,
   onNavigateDashboard
 }) {
   const [open, setOpen] = useState(false);
   const useScrollNav = Boolean(onNavigateLanding && onNavigateDashboard);
+  const safeProgress = useScrollNav ? Math.min(Math.max(scrollProgress, 0), 1) : 0;
+  const progressMode = activeSection === "dashboard" ? "dashboard" : "landing";
+
+  const backendLabel = healthStatus === "online" ? "Backend Online" : healthStatus === "offline" ? "Backend Offline" : "Cek Backend";
 
   function closeMenuAnd(action) {
     setOpen(false);
@@ -35,6 +50,14 @@ export default function Navbar({
             <Badge variant="secondary" className="uppercase tracking-wide">
               Garbage Odor Detection
             </Badge>
+            <span
+              className={`backend-indicator ${healthStatus}`}
+              title={healthMessage || backendLabel}
+              aria-live="polite"
+            >
+              <ActivityHeartIcon className="ui-icon" />
+              <span>{backendLabel}</span>
+            </span>
           </button>
         ) : (
           <NavLink to="/" className="brand" onClick={() => setOpen(false)}>
@@ -43,6 +66,14 @@ export default function Navbar({
             <Badge variant="secondary" className="uppercase tracking-wide">
               Garbage Odor Detection
             </Badge>
+            <span
+              className={`backend-indicator ${healthStatus}`}
+              title={healthMessage || backendLabel}
+              aria-live="polite"
+            >
+              <ActivityHeartIcon className="ui-icon" />
+              <span>{backendLabel}</span>
+            </span>
           </NavLink>
         )}
 
@@ -76,6 +107,16 @@ export default function Navbar({
               >
                 Dashboard
               </button>
+              {EXTRA_LINKS.map((link) => (
+                <NavLink
+                  key={link.to}
+                  to={link.to}
+                  onClick={() => setOpen(false)}
+                  className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
+                >
+                  {link.label}
+                </NavLink>
+              ))}
             </>
           ) : (
             <>
@@ -94,6 +135,16 @@ export default function Navbar({
               >
                 Dashboard
               </NavLink>
+              {EXTRA_LINKS.map((link) => (
+                <NavLink
+                  key={link.to}
+                  to={link.to}
+                  onClick={() => setOpen(false)}
+                  className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
+                >
+                  {link.label}
+                </NavLink>
+              ))}
             </>
           )}
 
@@ -114,8 +165,8 @@ export default function Navbar({
       </div>
       <div className="nav-progress-track" aria-hidden>
         <span
-          className={`nav-progress-fill ${activeSection === "dashboard" ? "dashboard" : "landing"}`}
-          style={{ transform: `scaleX(${Math.min(Math.max(scrollProgress, 0), 1)})` }}
+          className={`nav-progress-fill ${progressMode}`}
+          style={{ transform: `scaleX(${safeProgress})` }}
         />
       </div>
     </header>

@@ -3,9 +3,14 @@ import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-route
 import CursorTrail from "./components/CursorTrail";
 import DynamicBackground from "./components/DynamicBackground";
 import Navbar from "./components/Navbar";
+import { useBackendHealth } from "./composables/useBackendHealth";
 
 const LandingPage = lazy(() => import("./pages/LandingPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
+const SensorMonitorPage = lazy(() => import("./pages/SensorMonitorPage"));
+const SensorHistoryPage = lazy(() => import("./pages/SensorHistoryPage"));
+const SensorConvertPage = lazy(() => import("./pages/SensorConvertPage"));
+const CalibrationManagerPage = lazy(() => import("./pages/CalibrationManagerPage"));
 
 const THEME_STORAGE_KEY = "dashboard-theme";
 
@@ -34,7 +39,7 @@ function detectLowPower() {
   return reducedMotion || cores <= 2 || memory <= 2;
 }
 
-function OnePageFlow({ lowPower, theme, onToggleTheme }) {
+function OnePageFlow({ lowPower, theme, onToggleTheme, healthStatus, healthMessage }) {
   const location = useLocation();
 
   const landingRef = useRef(null);
@@ -108,6 +113,8 @@ function OnePageFlow({ lowPower, theme, onToggleTheme }) {
         onToggleTheme={onToggleTheme}
         activeSection={activeSection}
         scrollProgress={scrollProgress}
+        healthStatus={healthStatus}
+        healthMessage={healthMessage}
         onNavigateLanding={() => scrollToSection("landing")}
         onNavigateDashboard={() => scrollToSection("dashboard")}
       />
@@ -139,9 +146,30 @@ function OnePageFlow({ lowPower, theme, onToggleTheme }) {
   );
 }
 
+function StandalonePageShell({ lowPower, theme, onToggleTheme, healthStatus, healthMessage, children }) {
+  return (
+    <div className={`app-shell theme ${lowPower ? "low-power" : ""}`}>
+      <DynamicBackground lowPower={lowPower} />
+      <CursorTrail lowPower={lowPower} />
+      <Navbar
+        theme={theme}
+        onToggleTheme={onToggleTheme}
+        activeSection="dashboard"
+        scrollProgress={0}
+        healthStatus={healthStatus}
+        healthMessage={healthMessage}
+      />
+      <Suspense fallback={<div className="route-loading">Memuat halaman...</div>}>
+        {children}
+      </Suspense>
+    </div>
+  );
+}
+
 export default function App() {
   const [theme, setTheme] = useState(() => getInitialTheme());
   const [lowPower, setLowPower] = useState(() => detectLowPower());
+  const { status: healthStatus, message: healthMessage } = useBackendHealth({ pollIntervalMs: 5000 });
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -174,8 +202,88 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<OnePageFlow lowPower={lowPower} theme={theme} onToggleTheme={toggleTheme} />} />
-        <Route path="/dashboard" element={<OnePageFlow lowPower={lowPower} theme={theme} onToggleTheme={toggleTheme} />} />
+        <Route
+          path="/"
+          element={(
+            <OnePageFlow
+              lowPower={lowPower}
+              theme={theme}
+              onToggleTheme={toggleTheme}
+              healthStatus={healthStatus}
+              healthMessage={healthMessage}
+            />
+          )}
+        />
+        <Route
+          path="/dashboard"
+          element={(
+            <OnePageFlow
+              lowPower={lowPower}
+              theme={theme}
+              onToggleTheme={toggleTheme}
+              healthStatus={healthStatus}
+              healthMessage={healthMessage}
+            />
+          )}
+        />
+        <Route path="/latest" element={<Navigate to="/monitoring" replace />} />
+        <Route
+          path="/monitoring"
+          element={(
+            <StandalonePageShell
+              lowPower={lowPower}
+              theme={theme}
+              onToggleTheme={toggleTheme}
+              healthStatus={healthStatus}
+              healthMessage={healthMessage}
+            >
+              <SensorMonitorPage />
+            </StandalonePageShell>
+          )}
+        />
+        <Route
+          path="/history"
+          element={(
+            <StandalonePageShell
+              lowPower={lowPower}
+              theme={theme}
+              onToggleTheme={toggleTheme}
+              healthStatus={healthStatus}
+              healthMessage={healthMessage}
+            >
+              <SensorHistoryPage />
+            </StandalonePageShell>
+          )}
+        />
+        <Route
+          path="/tools/convert"
+          element={(
+            <StandalonePageShell
+              lowPower={lowPower}
+              theme={theme}
+              onToggleTheme={toggleTheme}
+              healthStatus={healthStatus}
+              healthMessage={healthMessage}
+            >
+              <SensorConvertPage />
+            </StandalonePageShell>
+          )}
+        />
+        <Route path="/tools/calibration" element={<Navigate to="/calibration" replace />} />
+        <Route
+          path="/calibration"
+          element={(
+            <StandalonePageShell
+              lowPower={lowPower}
+              theme={theme}
+              onToggleTheme={toggleTheme}
+              healthStatus={healthStatus}
+              healthMessage={healthMessage}
+            >
+              <CalibrationManagerPage />
+            </StandalonePageShell>
+          )}
+        />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
