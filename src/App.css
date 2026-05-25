@@ -784,6 +784,56 @@ a {
   gap: 7px;
 }
 
+.sensor-filter-grid {
+  align-items: flex-end;
+}
+
+.sensor-filter-actions {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.ma-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--surface-border);
+  background: var(--surface-soft);
+  border-radius: 10px;
+  padding: 9px 12px;
+  color: var(--button-text);
+  font-weight: 600;
+}
+
+.ma-toggle input {
+  margin: 0;
+}
+
+.sensor-dashboard-grid {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.sensor-chart-card .apexcharts-canvas,
+.sensor-chart-card .apexcharts-svg {
+  max-width: 100% !important;
+}
+
+.sensor-chart-stats {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 14px;
+  color: var(--panel-text);
+  font-size: 0.84rem;
+}
+
 .chart {
   width: 100%;
   height: 190px;
@@ -892,7 +942,8 @@ th {
   }
 
   .controls-panel .control-grid,
-  .sensor-grid {
+  .sensor-grid,
+  .sensor-dashboard-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -969,7 +1020,9 @@ th {
   .control-select-grid,
   .custom-range input,
   .time-actions button,
-  .quick-window button {
+  .quick-window button,
+  .sensor-filter-actions button,
+  .ma-toggle {
     width: 100%;
   }
 
