@@ -1,7 +1,4 @@
-const API_BASE = (import.meta.env.VITE_API_BASE ?? "/api").replace(/\/+$/, "");
-const apiVersionRaw = (import.meta.env.VITE_API_VERSION ?? "v1").trim();
-const API_VERSION = apiVersionRaw.replace(/^\/+|\/+$/g, "");
-const API_ROOT = API_VERSION ? `${API_BASE}/${API_VERSION}` : API_BASE;
+const API_BASE = (import.meta.env.VITE_API_BASE ?? "/api/v1").replace(/\/+$/, "");
 
 const parsedTimeout = Number.parseInt(import.meta.env.VITE_API_TIMEOUT_MS ?? "10000", 10);
 const REQUEST_TIMEOUT_MS = Number.isFinite(parsedTimeout) && parsedTimeout > 0 ? parsedTimeout : 10000;
@@ -173,7 +170,7 @@ function normalizeHistoryItem(row: unknown): SensorHistoryItem | null {
 }
 
 function buildUrl(path: string, query: Record<string, string | number | null | undefined> = {}): string {
-  const endpoint = `${API_ROOT}${path.startsWith("/") ? path : `/${path}`}`;
+  const endpoint = `${API_BASE}${path.startsWith("/") ? path : `/${path}`}`;
   const searchParams = new URLSearchParams();
 
   Object.entries(query).forEach(([key, value]) => {
@@ -252,7 +249,7 @@ async function fetchJson(url: string, options: RequestInit = {}): Promise<unknow
 }
 
 export async function fetchHealth(signal?: AbortSignal): Promise<HealthPayload> {
-  const candidates = [buildUrl("/health"), `${API_BASE}/health`];
+  const candidates = [buildUrl("/health"), "/api/health"];
   let lastError: unknown = null;
 
   for (const url of candidates) {
@@ -343,7 +340,7 @@ export async function fetchLatestAllSensors(
   params: { deviceId?: string; sensor?: string; signal?: AbortSignal } = {}
 ): Promise<SensorLatestAllPayload> {
   const payload = await fetchJson(
-    buildUrl("/api/v1/sensors/latest", {
+    buildUrl("/sensors/latest", {
       device_id: sanitizeDeviceId(params.deviceId ?? ""),
       sensor: toStringValue(params.sensor)
     }),
@@ -387,7 +384,7 @@ export async function fetchSensorHistory(
 ): Promise<SensorHistoryPayload> {
   const safeLimit = sanitizeHistoryLimit(params.limit ?? 50, 50);
   const payload = await fetchJson(
-    buildUrl(`/api/v1/sensors/latest/${safeLimit}`, {
+    buildUrl(`/sensors/latest/${safeLimit}`, {
       device_id: sanitizeDeviceId(params.deviceId ?? "")
     }),
     {

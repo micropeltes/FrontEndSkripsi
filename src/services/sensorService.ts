@@ -1,4 +1,4 @@
-const API_BASE = (import.meta.env.VITE_API_BASE ?? "/api").replace(/\/+$/, "");
+const API_BASE = (import.meta.env.VITE_API_BASE ?? "/api/v1").replace(/\/+$/, "");
 const parsedTimeout = Number.parseInt(import.meta.env.VITE_API_TIMEOUT_MS ?? "10000", 10);
 const REQUEST_TIMEOUT_MS = Number.isFinite(parsedTimeout) && parsedTimeout > 0 ? parsedTimeout : 10000;
 
@@ -187,7 +187,7 @@ async function fetchJson(url: string, signal?: AbortSignal): Promise<unknown> {
 export function buildLatestSensorsUrl(limit: number, deviceId = ""): string {
   const safeLimit = sanitizeLimit(limit);
   const safeDeviceId = sanitizeDeviceId(deviceId);
-  const endpoint = `${API_BASE}/v1/sensors/latest/${safeLimit}`;
+  const endpoint = `${API_BASE}/sensors/latest/${safeLimit}`;
 
   if (!safeDeviceId) {
     return endpoint;
