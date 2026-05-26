@@ -20,6 +20,24 @@ function formatNumber(value) {
   }
 
   const num = Number(value);
+  const abs = Math.abs(num);
+
+  if (abs === 0) {
+    return "0";
+  }
+
+  if (abs < 0.0001) {
+    return num.toExponential(2);
+  }
+
+  if (abs < 0.01) {
+    return num.toFixed(6);
+  }
+
+  if (abs < 1) {
+    return num.toFixed(4);
+  }
+
   if (Math.abs(num) >= 1000) {
     return num.toFixed(0);
   }
@@ -28,7 +46,7 @@ function formatNumber(value) {
     return num.toFixed(1);
   }
 
-  return num.toFixed(2);
+  return num.toFixed(3);
 }
 
 function formatTimestamp(timestampMs) {

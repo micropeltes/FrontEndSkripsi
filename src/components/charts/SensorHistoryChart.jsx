@@ -28,6 +28,34 @@ function formatTime(timestampMs) {
   return timeFormatter.format(new Date(Number(timestampMs)));
 }
 
+function formatSensorNumber(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) {
+    return "--";
+  }
+
+  const abs = Math.abs(num);
+  if (abs === 0) {
+    return "0";
+  }
+  if (abs < 0.0001) {
+    return num.toExponential(2);
+  }
+  if (abs < 0.01) {
+    return num.toFixed(6);
+  }
+  if (abs < 1) {
+    return num.toFixed(4);
+  }
+  if (abs >= 1000) {
+    return num.toFixed(0);
+  }
+  if (abs >= 100) {
+    return num.toFixed(1);
+  }
+  return num.toFixed(3);
+}
+
 function getCssVar(name, fallback) {
   if (typeof window === "undefined") {
     return fallback;
@@ -142,7 +170,7 @@ function SensorHistoryChart({ rows, sensors }) {
       },
       yaxis: {
         labels: {
-          formatter: (value) => Number(value).toFixed(1)
+          formatter: (value) => formatSensorNumber(value)
         }
       },
       tooltip: {
@@ -152,7 +180,7 @@ function SensorHistoryChart({ rows, sensors }) {
           formatter: (value) => `${formatTime(Number(value))} WIB`
         },
         y: {
-          formatter: (value) => `${Number(value).toFixed(2)} ppm`
+          formatter: (value) => `${formatSensorNumber(value)} ppm`
         },
         theme: themeTokens.tooltipTheme
       },

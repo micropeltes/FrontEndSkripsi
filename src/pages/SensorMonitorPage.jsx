@@ -55,7 +55,26 @@ function formatNumber(value, digits = 2) {
     return "--";
   }
 
-  return Number(value).toFixed(digits);
+  const num = Number(value);
+  const abs = Math.abs(num);
+
+  if (abs === 0) {
+    return "0";
+  }
+
+  if (abs < 0.0001) {
+    return num.toExponential(2);
+  }
+
+  if (abs < 0.01) {
+    return num.toFixed(6);
+  }
+
+  if (abs < 1) {
+    return num.toFixed(4);
+  }
+
+  return num.toFixed(digits);
 }
 
 function getRisk(sensor, ppm) {
