@@ -2,7 +2,7 @@ const API_BASE = (import.meta.env.VITE_API_BASE ?? "/api/v1").replace(/\/+$/, ""
 const parsedTimeout = Number.parseInt(import.meta.env.VITE_API_TIMEOUT_MS ?? "10000", 10);
 const REQUEST_TIMEOUT_MS = Number.isFinite(parsedTimeout) && parsedTimeout > 0 ? parsedTimeout : 10000;
 
-export const SENSOR_FIELDS = ["mq135", "fermion_nh3", "fermion_h2s", "mics6814"] as const;
+export const SENSOR_FIELDS = ["mq135", "nh3_mics", "co", "no2", "nh3_mems", "h2s"] as const;
 export const SENSOR_LIMIT_MIN = 1;
 export const SENSOR_LIMIT_MAX = 1000;
 
@@ -106,10 +106,10 @@ function normalizeSensorRow(row: unknown): SensorRow | null {
   function sensorPpm(sensorName: SensorField): number | null {
     const sensorNode = sensors[sensorName];
     if (!sensorNode || typeof sensorNode !== "object" || Array.isArray(sensorNode)) {
-      return null;
+      return toFiniteNumber(raw[sensorName]);
     }
 
-    return toFiniteNumber((sensorNode as Record<string, unknown>).ppm);
+    return toFiniteNumber((sensorNode as Record<string, unknown>).ppm) ?? toFiniteNumber(raw[sensorName]);
   }
 
   return {
@@ -118,9 +118,11 @@ function normalizeSensorRow(row: unknown): SensorRow | null {
     created_at: createdAt,
     timestamp_ms: timestampMs,
     mq135: sensorPpm("mq135"),
-    fermion_nh3: sensorPpm("fermion_nh3"),
-    fermion_h2s: sensorPpm("fermion_h2s"),
-    mics6814: sensorPpm("mics6814")
+    nh3_mics: sensorPpm("nh3_mics"),
+    co: sensorPpm("co"),
+    no2: sensorPpm("no2"),
+    nh3_mems: sensorPpm("nh3_mems"),
+    h2s: sensorPpm("h2s")
   };
 }
 

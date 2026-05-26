@@ -3,7 +3,7 @@ const API_BASE = (import.meta.env.VITE_API_BASE ?? "/api/v1").replace(/\/+$/, ""
 const parsedTimeout = Number.parseInt(import.meta.env.VITE_API_TIMEOUT_MS ?? "10000", 10);
 const REQUEST_TIMEOUT_MS = Number.isFinite(parsedTimeout) && parsedTimeout > 0 ? parsedTimeout : 10000;
 
-export const FALLBACK_SENSORS = ["mq135", "fermion_nh3", "fermion_h2s", "mics6814"] as const;
+export const FALLBACK_SENSORS = ["mq135", "nh3_mics", "co", "no2", "nh3_mems", "h2s"] as const;
 
 export type HealthPayload = {
   status: string;
@@ -36,14 +36,25 @@ export type SensorHistoryItem = {
   device_id: string;
   created_at: string | null;
   mq135: number | null;
-  fermion_nh3: number | null;
-  fermion_h2s: number | null;
-  mics6814: number | null;
+  nh3_mics: number | null;
+  co: number | null;
+  no2: number | null;
+  nh3_mems: number | null;
+  h2s: number | null;
 };
 
 export type SensorHistoryPayload = {
   count: number;
   items: SensorHistoryItem[];
+};
+
+export type RawAdcHistoryItem = {
+  [sensor: string]: number | null;
+};
+
+export type RawAdcHistoryPayload = {
+  count: number;
+  items: RawAdcHistoryItem[];
 };
 
 export type ConvertAdcPayload = {
@@ -161,10 +172,10 @@ function normalizeHistoryItem(row: unknown): SensorHistoryItem | null {
   function sensorPpm(sensorName: string): number | null {
     const sensorNode = sensors[sensorName];
     if (!sensorNode || typeof sensorNode !== "object" || Array.isArray(sensorNode)) {
-      return null;
+      return toNumber(raw[sensorName]);
     }
 
-    return toNumber((sensorNode as Record<string, unknown>).ppm);
+    return toNumber((sensorNode as Record<string, unknown>).ppm) ?? toNumber(raw[sensorName]);
   }
 
   return {
@@ -172,9 +183,11 @@ function normalizeHistoryItem(row: unknown): SensorHistoryItem | null {
     device_id: toStringValue(raw.device_id),
     created_at: toDatetime(raw.created_at),
     mq135: sensorPpm("mq135"),
-    fermion_nh3: sensorPpm("fermion_nh3"),
-    fermion_h2s: sensorPpm("fermion_h2s"),
-    mics6814: sensorPpm("mics6814")
+    nh3_mics: sensorPpm("nh3_mics"),
+    co: sensorPpm("co"),
+    no2: sensorPpm("no2"),
+    nh3_mems: sensorPpm("nh3_mems"),
+    h2s: sensorPpm("h2s")
   };
 }
 
@@ -416,6 +429,47 @@ export async function fetchSensorHistory(
     const rightTime = right.created_at ? Date.parse(right.created_at) : Number.NEGATIVE_INFINITY;
     return leftTime - rightTime;
   });
+
+  const countValue = toInteger(raw.count);
+  return {
+    count: countValue ?? items.length,
+    items
+  };
+}
+
+export async function fetchSensorHistoryUnprocessed(
+  params: { limit?: number; deviceId?: string; signal?: AbortSignal } = {}
+): Promise<RawAdcHistoryPayload> {
+  const safeLimit = sanitizeHistoryLimit(params.limit ?? 50, 50);
+  const payload = await fetchJson(
+    buildUrl(`/sensors/latest/${safeLimit}/unprocessed`, {
+      device_id: sanitizeDeviceId(params.deviceId ?? "")
+    }),
+    {
+      method: "GET",
+      cache: "no-store",
+      signal: params.signal
+    }
+  );
+
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return { count: 0, items: [] };
+  }
+
+  const raw = payload as Record<string, unknown>;
+  const rawItems = Array.isArray(raw.items) ? raw.items : [];
+  const items = rawItems
+    .filter((item) => item && typeof item === "object" && !Array.isArray(item))
+    .map((item) => {
+      const record = item as Record<string, unknown>;
+      const normalized: RawAdcHistoryItem = {};
+
+      Object.entries(record).forEach(([key, value]) => {
+        normalized[key] = toNumber(value);
+      });
+
+      return normalized;
+    });
 
   const countValue = toInteger(raw.count);
   return {

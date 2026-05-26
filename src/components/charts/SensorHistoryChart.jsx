@@ -5,9 +5,11 @@ const JAKARTA_TIME_ZONE = "Asia/Jakarta";
 
 const SENSOR_COLORS = {
   mq135: "#14b8a6",
-  fermion_nh3: "#06b6d4",
-  fermion_h2s: "#22c55e",
-  mics6814: "#f97316"
+  nh3_mics: "#06b6d4",
+  co: "#f43f5e",
+  no2: "#f97316",
+  nh3_mems: "#0ea5e9",
+  h2s: "#22c55e"
 };
 
 const timeFormatter = new Intl.DateTimeFormat("id-ID", {

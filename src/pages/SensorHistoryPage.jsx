@@ -14,7 +14,7 @@ import {
 
 const POLL_INTERVAL_MS = 4000;
 const LIMIT_OPTIONS = [10, 50, 100];
-const HISTORY_KEYS = ["mq135", "fermion_nh3", "fermion_h2s", "mics6814"];
+const HISTORY_KEYS = ["mq135", "nh3_mics", "co", "no2", "nh3_mems", "h2s"];
 
 const dateTimeFormatter = new Intl.DateTimeFormat("id-ID", {
   timeZone: "Asia/Jakarta",
