@@ -14,12 +14,10 @@ const DEFAULT_MOVING_AVERAGE_WINDOW = 5;
 const POLL_INTERVAL_MS = 5000;
 
 const SENSOR_CHARTS = [
-  { key: "nh3_mics", title: "NH3 MICS", color: "#06b6d4" },
-  { key: "nh3_mems", title: "NH3 MEMS", color: "#0ea5e9" },
-  { key: "h2s", title: "H2S", color: "#22c55e" },
-  { key: "no2", title: "NO2", color: "#f97316" },
-  { key: "co", title: "CO", color: "#f43f5e" },
-  { key: "mq135", title: "MQ135", color: "#14b8a6" }
+  { key: "mq135", title: "MQ135", color: "#14b8a6" },
+  { key: "fermion_nh3", title: "FERMION NH3", color: "#06b6d4" },
+  { key: "fermion_h2s", title: "FERMION H2S", color: "#22c55e" },
+  { key: "mics6814", title: "MICS6814", color: "#f97316" }
 ];
 
 const syncTimeFormatter = new Intl.DateTimeFormat("id-ID", {

@@ -4,12 +4,10 @@ import ApexCharts from "apexcharts";
 const JAKARTA_TIME_ZONE = "Asia/Jakarta";
 
 const SENSOR_COLORS = {
-  nh3_mics: "#22d3ee",
-  nh3_mems: "#06b6d4",
-  h2s: "#22c55e",
-  no2: "#f97316",
-  co: "#ef4444",
-  mq135: "#14b8a6"
+  mq135: "#14b8a6",
+  fermion_nh3: "#06b6d4",
+  fermion_h2s: "#22c55e",
+  mics6814: "#f97316"
 };
 
 const timeFormatter = new Intl.DateTimeFormat("id-ID", {

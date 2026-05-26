@@ -2,7 +2,7 @@ const API_BASE = (import.meta.env.VITE_API_BASE ?? "/api/v1").replace(/\/+$/, ""
 const parsedTimeout = Number.parseInt(import.meta.env.VITE_API_TIMEOUT_MS ?? "10000", 10);
 const REQUEST_TIMEOUT_MS = Number.isFinite(parsedTimeout) && parsedTimeout > 0 ? parsedTimeout : 10000;
 
-export const SENSOR_FIELDS = ["nh3_mics", "nh3_mems", "h2s", "no2", "co", "mq135"] as const;
+export const SENSOR_FIELDS = ["mq135", "fermion_nh3", "fermion_h2s", "mics6814"] as const;
 export const SENSOR_LIMIT_MIN = 1;
 export const SENSOR_LIMIT_MAX = 1000;
 
@@ -98,18 +98,29 @@ function normalizeSensorRow(row: unknown): SensorRow | null {
 
   const raw = row as Record<string, unknown>;
   const { createdAt, timestampMs } = toSafeTimestamp(raw.created_at);
+  const sensors =
+    raw.sensors && typeof raw.sensors === "object" && !Array.isArray(raw.sensors)
+      ? (raw.sensors as Record<string, unknown>)
+      : {};
+
+  function sensorPpm(sensorName: SensorField): number | null {
+    const sensorNode = sensors[sensorName];
+    if (!sensorNode || typeof sensorNode !== "object" || Array.isArray(sensorNode)) {
+      return null;
+    }
+
+    return toFiniteNumber((sensorNode as Record<string, unknown>).ppm);
+  }
 
   return {
     id: toSafeId(raw.id),
     device_id: toSafeDeviceId(raw.device_id),
     created_at: createdAt,
     timestamp_ms: timestampMs,
-    nh3_mics: toFiniteNumber(raw.nh3_mics),
-    nh3_mems: toFiniteNumber(raw.nh3_mems),
-    h2s: toFiniteNumber(raw.h2s),
-    no2: toFiniteNumber(raw.no2),
-    co: toFiniteNumber(raw.co),
-    mq135: toFiniteNumber(raw.mq135)
+    mq135: sensorPpm("mq135"),
+    fermion_nh3: sensorPpm("fermion_nh3"),
+    fermion_h2s: sensorPpm("fermion_h2s"),
+    mics6814: sensorPpm("mics6814")
   };
 }
 

@@ -3,7 +3,7 @@ const API_BASE = (import.meta.env.VITE_API_BASE ?? "/api/v1").replace(/\/+$/, ""
 const parsedTimeout = Number.parseInt(import.meta.env.VITE_API_TIMEOUT_MS ?? "10000", 10);
 const REQUEST_TIMEOUT_MS = Number.isFinite(parsedTimeout) && parsedTimeout > 0 ? parsedTimeout : 10000;
 
-export const FALLBACK_SENSORS = ["nh3_mics", "nh3_mems", "h2s", "no2", "co", "mq135"] as const;
+export const FALLBACK_SENSORS = ["mq135", "fermion_nh3", "fermion_h2s", "mics6814"] as const;
 
 export type HealthPayload = {
   status: string;
@@ -35,12 +35,10 @@ export type SensorHistoryItem = {
   id: number | null;
   device_id: string;
   created_at: string | null;
-  nh3_mics: number | null;
-  nh3_mems: number | null;
-  h2s: number | null;
-  no2: number | null;
-  co: number | null;
   mq135: number | null;
+  fermion_nh3: number | null;
+  fermion_h2s: number | null;
+  mics6814: number | null;
 };
 
 export type SensorHistoryPayload = {
@@ -155,17 +153,28 @@ function normalizeHistoryItem(row: unknown): SensorHistoryItem | null {
   }
 
   const raw = row as Record<string, unknown>;
+  const sensors =
+    raw.sensors && typeof raw.sensors === "object" && !Array.isArray(raw.sensors)
+      ? (raw.sensors as Record<string, unknown>)
+      : {};
+
+  function sensorPpm(sensorName: string): number | null {
+    const sensorNode = sensors[sensorName];
+    if (!sensorNode || typeof sensorNode !== "object" || Array.isArray(sensorNode)) {
+      return null;
+    }
+
+    return toNumber((sensorNode as Record<string, unknown>).ppm);
+  }
 
   return {
     id: toInteger(raw.id),
     device_id: toStringValue(raw.device_id),
     created_at: toDatetime(raw.created_at),
-    nh3_mics: toNumber(raw.nh3_mics),
-    nh3_mems: toNumber(raw.nh3_mems),
-    h2s: toNumber(raw.h2s),
-    no2: toNumber(raw.no2),
-    co: toNumber(raw.co),
-    mq135: toNumber(raw.mq135)
+    mq135: sensorPpm("mq135"),
+    fermion_nh3: sensorPpm("fermion_nh3"),
+    fermion_h2s: sensorPpm("fermion_h2s"),
+    mics6814: sensorPpm("mics6814")
   };
 }
 

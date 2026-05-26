@@ -14,12 +14,10 @@ import {
 const POLL_INTERVAL_MS = 2000;
 
 const RISK_THRESHOLDS = {
-  nh3_mics: { warning: 25, danger: 50 },
-  nh3_mems: { warning: 25, danger: 50 },
-  h2s: { warning: 10, danger: 20 },
-  no2: { warning: 1, danger: 5 },
-  co: { warning: 35, danger: 100 },
-  mq135: { warning: 100, danger: 200 }
+  mq135: { warning: 100, danger: 200 },
+  fermion_nh3: { warning: 25, danger: 50 },
+  fermion_h2s: { warning: 10, danger: 20 },
+  mics6814: { warning: 1, danger: 5 }
 };
 
 const dateTimeFormatter = new Intl.DateTimeFormat("id-ID", {
