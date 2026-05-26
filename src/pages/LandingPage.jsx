@@ -60,24 +60,23 @@ export default function LandingPage({ lowPower = false, onEnterDashboard, fluid 
           <motion.div className="landing-copy" {...heroLeftAnimation}>
             <Badge variant="secondary" className="eyebrow">
               <ZapIcon className="ui-icon" />
-              GOD Platform
+              Garbage Odor Detection Platform
             </Badge>
-            <h1>GOD (Garbage Odor Detection)</h1>
             <p className="lead">
-              GOD adalah landing page untuk pemantauan kualitas udara berbasis IoT. Dari sini,
+              Garbage Odor Detection adalah landing page untuk pemantauan kualitas udara berbasis IoT. Dari sini,
               pengguna bisa langsung masuk ke dashboard sensor yang interaktif dengan analitik waktu nyata.
             </p>
 
             <div className="hero-actions">
               {hasFluidAction ? (
                 <Button type="button" size="lg" className="btn-primary" onClick={onEnterDashboard}>
-                  <span>Buka Dashboard GOD</span>
+                  <span>Buka Dashboard</span>
                   <ArrowRightIcon className="ui-icon" />
                 </Button>
               ) : (
                 <Button asChild size="lg" className="btn-primary">
                   <Link to="/dashboard">
-                    <span>Buka Dashboard GOD</span>
+                    <span>Buka Dashboard</span>
                     <ArrowRightIcon className="ui-icon" />
                   </Link>
                 </Button>
@@ -91,19 +90,19 @@ export default function LandingPage({ lowPower = false, onEnterDashboard, fluid 
           <motion.div className="landing-visual" {...heroRightAnimation}>
             <Card className="visual-card pulse-a">
               <CardContent>
-                <span>GOD NH3</span>
+                <span>NH3</span>
                 <strong>11.8 ppm</strong>
               </CardContent>
             </Card>
             <Card className="visual-card pulse-b">
               <CardContent>
-                <span>GOD MQ135</span>
+                <span>MQ135</span>
                 <strong>220.5 raw</strong>
               </CardContent>
             </Card>
             <Card className="visual-card pulse-c">
               <CardContent>
-                <span>GOD Status</span>
+                <span>Status</span>
                 <strong>NORMAL</strong>
               </CardContent>
             </Card>

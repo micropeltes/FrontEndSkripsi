@@ -46,7 +46,6 @@ export default function Navbar({
         {useScrollNav ? (
           <button type="button" className="brand brand-btn" onClick={() => closeMenuAnd(onNavigateLanding)}>
             <ZapIcon className="brand-icon" />
-            <span>GOD</span>
             <Badge variant="secondary" className="uppercase tracking-wide">
               Garbage Odor Detection
             </Badge>
@@ -62,7 +61,6 @@ export default function Navbar({
         ) : (
           <NavLink to="/" className="brand" onClick={() => setOpen(false)}>
             <ZapIcon className="brand-icon" />
-            <span>GOD</span>
             <Badge variant="secondary" className="uppercase tracking-wide">
               Garbage Odor Detection
             </Badge>
