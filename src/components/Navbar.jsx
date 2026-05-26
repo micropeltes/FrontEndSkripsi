@@ -33,7 +33,7 @@ export default function Navbar({
   const safeProgress = useScrollNav ? Math.min(Math.max(scrollProgress, 0), 1) : 0;
   const progressMode = activeSection === "dashboard" ? "dashboard" : "landing";
 
-  const backendLabel = healthStatus === "online" ? "Backend Online" : healthStatus === "offline" ? "Backend Offline" : "Cek Backend";
+  const backendLabel = healthStatus === "online" ? "Backend Online" : healthStatus === "offline" ? "Cek Backend" : "Cek Backend";
 
   function closeMenuAnd(action) {
     setOpen(false);
