@@ -14,12 +14,12 @@ import {
 const POLL_INTERVAL_MS = 2000;
 
 const RISK_THRESHOLDS = {
-  mq135: { warning: 100, danger: 200 },
-  nh3_mics: { warning: 25, danger: 50 },
-  co: { warning: 35, danger: 100 },
+  mq135: { warning: 50, danger: 200 },
+  nh3_mics: { warning: 15, danger: 50 },
+  co: { warning: 10, danger: 100 },
   no2: { warning: 1, danger: 5 },
-  nh3_mems: { warning: 25, danger: 50 },
-  h2s: { warning: 10, danger: 20 }
+  nh3_mems: { warning: 15, danger: 50 },
+  h2s: { warning: 1, danger: 100 }
 };
 
 const dateTimeFormatter = new Intl.DateTimeFormat("id-ID", {
@@ -82,7 +82,7 @@ function getRisk(sensor, ppm) {
     return { key: "unknown", text: "Tidak Ada Data" };
   }
 
-  const limit = RISK_THRESHOLDS[sensor] ?? { warning: 50, danger: 100 };
+  const limit = RISK_THRESHOLDS[sensor] ?? { warning: 0.003, danger: 0.03 };
   if (ppm >= limit.danger) {
     return { key: "danger", text: "Bahaya" };
   }
@@ -341,14 +341,17 @@ export default function SensorMonitorPage({ fluid = false }) {
             {loading && <p className="info">Memuat data sensor realtime...</p>}
             {!loading && singleError && <p className="error">{singleError}</p>}
             {!loading && !singleError && latestSensor && (
-              <div className="sensor-realtime-grid">
-                <p><strong>PPM:</strong> {formatNumber(latestSensor.ppm)} {latestSensor.unit || "ppm"}</p>
-                <p><strong>ADC:</strong> {formatNumber(latestSensor.adc, 0)}</p>
-                <p><strong>Voltage:</strong> {formatNumber(latestSensor.voltage, 3)} V</p>
-                <p><strong>Ratio:</strong> {formatNumber(latestSensor.ratio, 3)}</p>
-                <p><strong>Timestamp:</strong> {formatTime(latestSensor.created_at)}</p>
-                <p><strong>Device:</strong> {latestSensor.device_id || deviceId || "--"}</p>
-              </div>
+            <div className="sensor-realtime-grid">
+              <p>
+                <strong>PPM:</strong>{" "}
+                {formatNumber(latestSensor.ppm)} {latestSensor.unit || "ppm"}
+              </p>
+
+              <p>
+                <strong>Timestamp:</strong>{" "}
+                {formatTime(latestSensor.created_at)}
+              </p>
+            </div>
             )}
           </CardContent>
         </Card>
@@ -372,10 +375,10 @@ export default function SensorMonitorPage({ fluid = false }) {
                       <Badge variant="outline">{entry.risk.text}</Badge>
                     </div>
                     <div className="sensor-meta">
-                      <p><strong>ADC:</strong> {formatNumber(entry.item?.adc, 0)}</p>
-                      <p><strong>Voltage:</strong> {formatNumber(entry.item?.voltage, 3)} V</p>
-                      <p><strong>Ratio:</strong> {formatNumber(entry.item?.ratio, 3)}</p>
-                      <p><strong>Updated:</strong> {formatTime(entry.item?.created_at)}</p>
+                      <p>
+                        <strong>Updated:</strong>{" "}
+                        {formatTime(entry.item?.created_at)}
+                      </p>
                     </div>
                   </article>
                 ))}
