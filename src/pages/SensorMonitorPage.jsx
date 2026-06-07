@@ -33,8 +33,6 @@ const dateTimeFormatter = new Intl.DateTimeFormat("id-ID", {
   hour12: false
 });
 
-const [showNh3Mics, setShowNh3Mics] = useState(false);
-
 function formatLabel(sensor) {
   return sensor.replaceAll("_", " ").toUpperCase();
 }
@@ -107,7 +105,7 @@ export default function SensorMonitorPage({ fluid = false }) {
   const [latestAll, setLatestAll] = useState([]);
   const [singleError, setSingleError] = useState("");
   const [allError, setAllError] = useState("");
-
+  const [showNh3Mics, setShowNh3Mics] = useState(false);
   useEffect(() => {
     let isMounted = true;
     const controller = new AbortController();
@@ -221,14 +219,13 @@ export default function SensorMonitorPage({ fluid = false }) {
 
   const sensorCards = useMemo(() => {
     return supportedSensors
-      .filter(sensor => showNh3Mics || sensor !== "nh3_mics")
       .map((sensor) => {
         const item = latestBySensor.get(sensor) ?? null;
         const ppm = item?.ppm ?? null;
         const risk = getRisk(sensor, ppm);
         return { sensor, item, ppm, risk };
       });
-  }, [latestBySensor, supportedSensors, showNh3Mics]);
+  }, [latestBySensor, supportedSensors]);
 
   const selectedRisk = useMemo(() => {
     if (!latestSensor) {
