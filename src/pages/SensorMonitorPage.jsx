@@ -33,6 +33,8 @@ const dateTimeFormatter = new Intl.DateTimeFormat("id-ID", {
   hour12: false
 });
 
+const [showNh3Mics, setShowNh3Mics] = useState(false);
+
 function formatLabel(sensor) {
   return sensor.replaceAll("_", " ").toUpperCase();
 }
@@ -219,18 +221,14 @@ export default function SensorMonitorPage({ fluid = false }) {
 
   const sensorCards = useMemo(() => {
     return supportedSensors
+      .filter(sensor => showNh3Mics || sensor !== "nh3_mics")
       .map((sensor) => {
         const item = latestBySensor.get(sensor) ?? null;
         const ppm = item?.ppm ?? null;
         const risk = getRisk(sensor, ppm);
         return { sensor, item, ppm, risk };
-      })
-      .sort((left, right) => {
-        const leftValue = Number.isFinite(left.ppm) ? Number(left.ppm) : Number.NEGATIVE_INFINITY;
-        const rightValue = Number.isFinite(right.ppm) ? Number(right.ppm) : Number.NEGATIVE_INFINITY;
-        return rightValue - leftValue;
       });
-  }, [latestBySensor, supportedSensors]);
+  }, [latestBySensor, supportedSensors, showNh3Mics]);
 
   const selectedRisk = useMemo(() => {
     if (!latestSensor) {
@@ -358,8 +356,22 @@ export default function SensorMonitorPage({ fluid = false }) {
 
         <Card className="panel">
           <CardHeader>
-            <CardTitle>Latest All Sensors</CardTitle>
-            <CardDescription>Diurutkan berdasarkan ppm tertinggi.</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Latest All Sensors</CardTitle>
+                <CardDescription>
+                  Data sensor realtime.
+                </CardDescription>
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowNh3Mics(v => !v)}
+              >
+                {showNh3Mics ? "Hide NH3 MICS" : "Show NH3 MICS"}
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {allError && <p className="error">{allError}</p>}
