@@ -15,7 +15,6 @@ const POLL_INTERVAL_MS = 5000;
 
 const SENSOR_CHARTS = [
   { key: "mq135", title: "MQ135", color: "#14b8a6" },
-  { key: "nh3_mics", title: "NH3 MICS", color: "#06b6d4" },
   { key: "co", title: "CO", color: "#f43f5e" },
   { key: "no2", title: "NO2", color: "#f97316" },
   { key: "nh3_mems", title: "NH3 MEMS", color: "#0ea5e9" },
