@@ -219,13 +219,14 @@ export default function SensorMonitorPage({ fluid = false }) {
 
   const sensorCards = useMemo(() => {
     return supportedSensors
+      .filter(sensor => showNh3Mics || sensor !== "nh3_mics")
       .map((sensor) => {
         const item = latestBySensor.get(sensor) ?? null;
         const ppm = item?.ppm ?? null;
         const risk = getRisk(sensor, ppm);
         return { sensor, item, ppm, risk };
       });
-  }, [latestBySensor, supportedSensors]);
+  }, [latestBySensor, supportedSensors, showNh3Mics]);
 
   const selectedRisk = useMemo(() => {
     if (!latestSensor) {
