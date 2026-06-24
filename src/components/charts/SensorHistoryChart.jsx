@@ -4,12 +4,12 @@ import ApexCharts from "apexcharts";
 const JAKARTA_TIME_ZONE = "Asia/Jakarta";
 
 const SENSOR_COLORS = {
-  mq135: "#14b8a6",
-  nh3_mics: "#06b6d4",
-  co: "#f43f5e",
-  no2: "#f97316",
-  nh3_mems: "#0ea5e9",
-  h2s: "#22c55e"
+  mq135: "#ffd23f",
+  nh3_mics: "#1f57d6",
+  co: "#ff4b5f",
+  no2: "#f76b35",
+  nh3_mems: "#34cfff",
+  h2s: "#4ade80"
 };
 
 const timeFormatter = new Intl.DateTimeFormat("id-ID", {
@@ -115,7 +115,7 @@ function SensorHistoryChart({ rows, sensors }) {
   );
 
   const colors = useMemo(
-    () => sensors.map((sensor) => SENSOR_COLORS[sensor] ?? "#38bdf8"),
+    () => sensors.map((sensor) => SENSOR_COLORS[sensor] ?? "#34cfff"),
     [sensors]
   );
 

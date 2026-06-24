@@ -14,11 +14,11 @@ const DEFAULT_MOVING_AVERAGE_WINDOW = 5;
 const POLL_INTERVAL_MS = 5000;
 
 const SENSOR_CHARTS = [
-  { key: "mq135", title: "MQ135", color: "#14b8a6" },
-  { key: "co", title: "CO", color: "#f43f5e" },
-  { key: "no2", title: "NO2", color: "#f97316" },
-  { key: "nh3_mems", title: "NH3 MEMS", color: "#0ea5e9" },
-  { key: "h2s", title: "H2S", color: "#22c55e" }
+  { key: "mq135", title: "MQ135", color: "#ffd23f" },
+  { key: "co", title: "CO", color: "#ff4b5f" },
+  { key: "no2", title: "NO2", color: "#f76b35" },
+  { key: "nh3_mems", title: "NH3 MEMS", color: "#34cfff" },
+  { key: "h2s", title: "H2S", color: "#4ade80" }
 ];
 
 const syncTimeFormatter = new Intl.DateTimeFormat("id-ID", {
