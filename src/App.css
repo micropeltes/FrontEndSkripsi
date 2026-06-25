@@ -231,7 +231,7 @@ a {
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--surface-border);
   background: rgba(8, 10, 16, 0.62);
-  overflow: clip;
+  overflow: visible;
 }
 
 :root[data-theme="light"] .navbar {
@@ -1181,6 +1181,9 @@ th {
     align-items: stretch;
     background: var(--surface);
     border-bottom: 1px solid var(--surface-border);
+    box-shadow: 0 18px 34px rgba(0, 0, 0, 0.32);
+    max-height: calc(100vh - 66px);
+    overflow-y: auto;
   }
 
   .nav-links.open {
