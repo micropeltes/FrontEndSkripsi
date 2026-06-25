@@ -1,20 +1,24 @@
 :root {
   color-scheme: dark;
-  --unit-yellow: #ffd23f;
-  --unit-yellow-strong: #ffb000;
-  --unit-blue: #34cfff;
-  --unit-blue-deep: #1f57d6;
-  --unit-orange: #f76b35;
-  --unit-red: #ff4b5f;
-  --text-color: #fff4c4;
-  --muted-text: #c7bb93;
-  --card-title: #ffd86b;
-  --panel-text: #e9dcae;
-  --surface: rgba(15, 18, 27, 0.78);
-  --surface-soft: rgba(23, 27, 37, 0.9);
-  --surface-border: rgba(255, 210, 63, 0.28);
-  --surface-border-hover: rgba(52, 207, 255, 0.82);
-  --button-text: #ffe58a;
+  --unit-yellow: #d5ff2f;
+  --unit-yellow-strong: #94ff00;
+  --unit-blue: #8b5cf6;
+  --unit-blue-deep: #3d1674;
+  --unit-orange: #ff6b1a;
+  --unit-red: #ff2d55;
+  --eva-green: #b7ff1a;
+  --eva-purple: #5f2aa6;
+  --eva-purple-deep: #170722;
+  --eva-magenta: #ff3df2;
+  --text-color: #f4ffe1;
+  --muted-text: #bacb9a;
+  --card-title: #d5ff2f;
+  --panel-text: #e5f5c4;
+  --surface: rgba(18, 8, 31, 0.82);
+  --surface-soft: rgba(30, 13, 50, 0.92);
+  --surface-border: rgba(183, 255, 26, 0.36);
+  --surface-border-hover: rgba(255, 107, 26, 0.86);
+  --button-text: #dfff63;
   --chart-bg: linear-gradient(180deg, rgba(255, 210, 63, 0.07), rgba(52, 207, 255, 0.08));
   --row-border: rgba(255, 210, 63, 0.18);
   --header-accent: #ffd23f;
@@ -29,19 +33,24 @@
   --glow: rgba(52, 207, 255, 0.22);
   --noise-opacity: 0.1;
   --body-bg:
-    radial-gradient(circle at 18% 0%, rgba(255, 210, 63, 0.14), transparent 32%),
-    radial-gradient(circle at 82% 18%, rgba(52, 207, 255, 0.13), transparent 34%),
-    linear-gradient(180deg, #07090f 0%, #111824 52%, #080a10 100%);
+    linear-gradient(126deg, transparent 0 52%, rgba(183, 255, 26, 0.08) 52% 53%, transparent 53%),
+    radial-gradient(circle at 18% 0%, rgba(139, 92, 246, 0.28), transparent 32%),
+    radial-gradient(circle at 82% 18%, rgba(183, 255, 26, 0.16), transparent 34%),
+    linear-gradient(180deg, #090311 0%, #190c28 52%, #05070b 100%);
 }
 
 :root[data-theme="light"] {
   color-scheme: light;
-  --unit-yellow: #e6a700;
-  --unit-yellow-strong: #c47c00;
-  --unit-blue: #008fbd;
-  --unit-blue-deep: #2457c5;
-  --unit-orange: #df5c24;
+  --unit-yellow: #7eb300;
+  --unit-yellow-strong: #5f9700;
+  --unit-blue: #6f36b8;
+  --unit-blue-deep: #402068;
+  --unit-orange: #d95d13;
   --unit-red: #d62f49;
+  --eva-green: #75b900;
+  --eva-purple: #6f36b8;
+  --eva-purple-deep: #f0e6ff;
+  --eva-magenta: #c218b8;
   --text-color: #161b24;
   --muted-text: #5d543d;
   --card-title: #9b6b00;
@@ -49,7 +58,7 @@
   --surface: rgba(255, 252, 234, 0.78);
   --surface-soft: rgba(255, 249, 215, 0.96);
   --surface-border: rgba(177, 127, 0, 0.34);
-  --surface-border-hover: rgba(0, 143, 189, 0.76);
+  --surface-border-hover: rgba(217, 93, 19, 0.78);
   --button-text: #25201a;
   --chart-bg: linear-gradient(180deg, rgba(230, 167, 0, 0.1), rgba(0, 143, 189, 0.12));
   --row-border: rgba(177, 127, 0, 0.24);
@@ -65,9 +74,18 @@
   --glow: rgba(0, 143, 189, 0.19);
   --noise-opacity: 0.045;
   --body-bg:
-    radial-gradient(circle at 16% 0%, rgba(255, 210, 63, 0.34), transparent 34%),
-    radial-gradient(circle at 86% 12%, rgba(0, 143, 189, 0.17), transparent 34%),
-    linear-gradient(180deg, #fff6c7 0%, #f5e7a8 54%, #edf4f8 100%);
+    linear-gradient(126deg, transparent 0 52%, rgba(126, 179, 0, 0.14) 52% 53%, transparent 53%),
+    radial-gradient(circle at 16% 0%, rgba(111, 54, 184, 0.2), transparent 34%),
+    radial-gradient(circle at 86% 12%, rgba(126, 179, 0, 0.18), transparent 34%),
+    linear-gradient(180deg, #fff7df 0%, #eee4ff 52%, #eff8e8 100%);
+}
+
+
+/* Evangelion-inspired interface language: angular armor plates, neon sync lines, and alert accents. */
+:root {
+  --eva-cut-sm: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+  --eva-cut-md: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px));
+  --eva-cut-lg: polygon(0 0, calc(100% - 34px) 0, 100% 34px, 100% 100%, 34px 100%, 0 calc(100% - 34px));
 }
 
 * {
@@ -121,7 +139,8 @@ a {
 
 .bg-blob {
   position: absolute;
-  border-radius: 999px;
+  border-radius: 34% 66% 41% 59% / 58% 32% 68% 42%;
+  clip-path: polygon(14% 0, 100% 19%, 82% 100%, 0 72%);
   filter: blur(28px);
 }
 
@@ -153,7 +172,8 @@ a {
   position: absolute;
   width: 440px;
   height: 440px;
-  border-radius: 999px;
+  border-radius: 44% 56% 39% 61% / 51% 32% 68% 49%;
+  clip-path: polygon(20% 0, 100% 14%, 76% 100%, 0 80%);
   filter: blur(34px);
   background: var(--glow);
 }
@@ -265,7 +285,8 @@ a {
   border: 1px solid var(--surface-border);
   background: var(--surface-soft);
   color: var(--button-text);
-  border-radius: 10px;
+  border-radius: 2px 14px 2px 14px;
+  clip-path: var(--eva-cut-sm);
   padding: 9px 14px;
   font-weight: 600;
   cursor: pointer;
@@ -290,7 +311,8 @@ a {
   border: 1px solid var(--surface-border);
   background: var(--surface-soft);
   color: var(--muted-text);
-  border-radius: 999px;
+  border-radius: 2px 12px 2px 12px;
+  clip-path: var(--eva-cut-sm);
   padding: 3px 10px;
   display: inline-flex;
   align-items: center;
@@ -416,7 +438,8 @@ a {
 .control-card {
   background: var(--surface);
   border: 1px solid var(--surface-border);
-  border-radius: 18px;
+  border-radius: 2px 24px 2px 24px;
+  clip-path: var(--eva-cut-md);
   padding: 18px;
   box-shadow: var(--shadow-1);
 }
@@ -457,7 +480,8 @@ a {
 }
 
 .visual-card {
-  border-radius: 12px;
+  border-radius: 2px 18px 2px 18px;
+  clip-path: var(--eva-cut-sm);
   padding: 14px;
   background: rgba(18, 22, 32, 0.58);
   border: 1px solid rgba(255, 210, 63, 0.24);
@@ -512,7 +536,8 @@ a {
 .feature-icon-wrap {
   width: 38px;
   height: 38px;
-  border-radius: 10px;
+  border-radius: 2px 14px 2px 14px;
+  clip-path: var(--eva-cut-sm);
   border: 1px solid var(--surface-border);
   background: var(--surface-soft);
   display: inline-flex;
@@ -1271,4 +1296,71 @@ th {
 .app-shell.low-power .time-actions button,
 .app-shell.low-power .quick-window button {
   transition: none !important;
+}
+
+
+.landing-copy,
+.landing-visual,
+.feature-card,
+.card,
+.panel,
+.sensor-card,
+.control-card,
+.visual-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.landing-copy::before,
+.landing-visual::before,
+.panel::before,
+.sensor-card::before,
+.control-card::before,
+.feature-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(135deg, var(--eva-green, var(--unit-yellow)) 0 10px, transparent 10px),
+    linear-gradient(315deg, rgba(255, 107, 26, 0.78) 0 14px, transparent 14px),
+    linear-gradient(90deg, transparent 0 70%, rgba(183, 255, 26, 0.12) 70% 72%, transparent 72%);
+  opacity: 0.7;
+}
+
+.landing-copy::after,
+.landing-visual::after,
+.panel::after,
+.sensor-card::after {
+  content: "SYNC";
+  position: absolute;
+  right: 12px;
+  top: 10px;
+  color: var(--eva-green, var(--unit-yellow));
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.22em;
+  opacity: 0.34;
+}
+
+.btn-primary {
+  clip-path: polygon(12px 0, 100% 0, calc(100% - 12px) 100%, 0 100%);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.navbar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(110deg, transparent 0 22px, rgba(183, 255, 26, 0.08) 22px 24px);
+}
+
+.chart,
+.json-preview,
+.mobile-row,
+.filter-pill,
+.toast-item {
+  clip-path: var(--eva-cut-sm);
 }
