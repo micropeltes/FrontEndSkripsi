@@ -165,179 +165,108 @@ pre,
   z-index: 0;
   overflow: hidden;
   pointer-events: none;
+  contain: paint;
+  transform: translateZ(0);
 }
 
 .pcb-bg {
-  --pcb-board: #061016;
-  --pcb-grid: rgba(109, 255, 225, 0.032);
-  --pcb-grid-strong: rgba(183, 255, 26, 0.026);
-  --pcb-dim: 0.38;
-  --pcb-trace-opacity: 0.36;
-  --pcb-pulse-opacity: 0.18;
-  --pcb-glitch-opacity: 0.16;
+  --pcb-trace-opacity: 0.34;
+  --pcb-glow-opacity: 0.14;
+  --pcb-pattern-size: min(1040px, 140vw);
   background:
-    radial-gradient(circle at 14% 10%, rgba(0, 245, 255, 0.08), transparent 26%),
-    radial-gradient(circle at 86% 18%, rgba(183, 255, 26, 0.06), transparent 30%),
+    linear-gradient(rgba(109, 255, 225, 0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(109, 255, 225, 0.018) 1px, transparent 1px),
+    radial-gradient(circle at 16% 12%, rgba(0, 245, 255, 0.06), transparent 28%),
+    radial-gradient(circle at 84% 20%, rgba(183, 255, 26, 0.045), transparent 30%),
     linear-gradient(180deg, rgba(4, 16, 22, 0.96), rgba(5, 9, 15, 0.98));
+  background-size: 96px 96px, 96px 96px, auto, auto, auto;
 }
 
 .pcb-bg::before {
   content: "";
   position: absolute;
-  inset: -2%;
-  opacity: var(--pcb-glitch-opacity);
-  background:
-    repeating-linear-gradient(180deg, transparent 0 13px, rgba(0, 245, 255, 0.08) 14px 15px, transparent 16px 31px),
-    linear-gradient(90deg, transparent 0 18%, rgba(0, 245, 255, 0.13) 18.4% 18.9%, transparent 19.4% 64%, rgba(183, 255, 26, 0.09) 64.4% 64.9%, transparent 65.4%);
-  mix-blend-mode: screen;
-  animation: pcbGlitch 9s steps(1, end) infinite;
+  inset: 0;
+  opacity: var(--pcb-trace-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1040' height='620' viewBox='0 0 1040 620'%3E%3Cg fill='none' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M72 124 L152 124 L204 72 L326 72 L378 124 L500 124 L552 176 L706 176' stroke='%2300f5ff' stroke-width='3' stroke-opacity='.56'/%3E%3Cpath d='M204 72 L250 118 L250 192 L302 244 L426 244 L478 192 L582 192' stroke='%23b7ff1a' stroke-width='2.8' stroke-opacity='.48'/%3E%3Cpath d='M94 434 L184 434 L236 382 L360 382 L412 330 L572 330 L624 278 L742 278' stroke='%2300f5ff' stroke-width='2.8' stroke-opacity='.45'/%3E%3Cpath d='M282 552 L360 552 L414 498 L536 498 L588 446 L730 446 L782 394 L916 394' stroke='%23b7ff1a' stroke-width='2.8' stroke-opacity='.42'/%3E%3Cpath d='M784 92 L864 92 L916 144 L916 222 L864 274 L734 274 L682 326 L588 326' stroke='%2300f5ff' stroke-width='2.8' stroke-opacity='.42'/%3E%3Cpath d='M706 176 L760 230 L760 278 L816 334 L930 334 L982 386' stroke='%23ff3df2' stroke-width='2.2' stroke-opacity='.2'/%3E%3Cpath d='M86 274 L174 274 L226 326 L344 326 L396 274 L510 274' stroke='%23ffd23f' stroke-width='2.2' stroke-opacity='.26'/%3E%3Cpath d='M426 244 L478 296 L478 372 L530 424 L588 446' stroke='%23b7ff1a' stroke-width='2.3' stroke-opacity='.32'/%3E%3Cpath d='M864 274 L916 222 L996 222' stroke='%2300f5ff' stroke-width='2.2' stroke-opacity='.3'/%3E%3C/g%3E%3Cg fill='%23061116' stroke-width='2.1'%3E%3Ccircle cx='72' cy='124' r='7' stroke='%2300f5ff' stroke-opacity='.48'/%3E%3Ccircle cx='204' cy='72' r='7' stroke='%23b7ff1a' stroke-opacity='.44'/%3E%3Ccircle cx='378' cy='124' r='7' stroke='%2300f5ff' stroke-opacity='.42'/%3E%3Ccircle cx='552' cy='176' r='6.5' stroke='%2300f5ff' stroke-opacity='.36'/%3E%3Ccircle cx='250' cy='192' r='6.5' stroke='%23b7ff1a' stroke-opacity='.38'/%3E%3Ccircle cx='426' cy='244' r='7' stroke='%23b7ff1a' stroke-opacity='.38'/%3E%3Ccircle cx='94' cy='434' r='7' stroke='%2300f5ff' stroke-opacity='.36'/%3E%3Ccircle cx='360' cy='382' r='7' stroke='%2300f5ff' stroke-opacity='.34'/%3E%3Ccircle cx='572' cy='330' r='6.5' stroke='%2300f5ff' stroke-opacity='.32'/%3E%3Ccircle cx='742' cy='278' r='7' stroke='%23b7ff1a' stroke-opacity='.32'/%3E%3Ccircle cx='784' cy='92' r='7' stroke='%2300f5ff' stroke-opacity='.34'/%3E%3Ccircle cx='864' cy='274' r='7' stroke='%2300f5ff' stroke-opacity='.32'/%3E%3Ccircle cx='730' cy='446' r='7' stroke='%23b7ff1a' stroke-opacity='.32'/%3E%3Ccircle cx='916' cy='394' r='7' stroke='%23b7ff1a' stroke-opacity='.3'/%3E%3Ccircle cx='396' cy='274' r='6' stroke='%23ffd23f' stroke-opacity='.26'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: var(--pcb-pattern-size) auto;
+  background-position: center 36px;
 }
 
 .pcb-bg::after {
   content: "";
   position: absolute;
-  inset: 0;
+  inset: -1%;
+  opacity: var(--pcb-glow-opacity);
   background:
-    radial-gradient(circle at 50% 12%, transparent 0 20%, rgba(3, 6, 10, 0.14) 58%, rgba(3, 6, 10, 0.48) 100%),
-    linear-gradient(90deg, rgba(3, 6, 10, 0.44), transparent 18% 82%, rgba(3, 6, 10, 0.42));
-}
-
-.pcb-base,
-.pcb-trace-layer,
-.pcb-via-layer {
-  position: absolute;
-  inset: 0;
-}
-
-.pcb-base {
-  opacity: var(--pcb-dim);
-  background-image:
-    linear-gradient(var(--pcb-grid) 1px, transparent 1px),
-    linear-gradient(90deg, var(--pcb-grid) 1px, transparent 1px),
-    linear-gradient(var(--pcb-grid-strong) 1px, transparent 1px),
-    linear-gradient(90deg, var(--pcb-grid-strong) 1px, transparent 1px);
-  background-size: 56px 56px, 56px 56px, 224px 224px, 224px 224px;
-}
-
-.pcb-trace-layer {
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1040' height='620' viewBox='0 0 1040 620'%3E%3Cg fill='none' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M72 124 L152 124 L204 72 L326 72 L378 124 L500 124 L552 176 L706 176' stroke='%2300f5ff' stroke-width='6.4' stroke-opacity='.36'/%3E%3Cpath d='M94 434 L184 434 L236 382 L360 382 L412 330 L572 330 L624 278 L742 278' stroke='%2300f5ff' stroke-width='5.8' stroke-opacity='.26'/%3E%3Cpath d='M282 552 L360 552 L414 498 L536 498 L588 446 L730 446 L782 394 L916 394' stroke='%23b7ff1a' stroke-width='5.8' stroke-opacity='.28'/%3E%3C/g%3E%3C/svg%3E"),
+    repeating-linear-gradient(180deg, transparent 0 27px, rgba(0, 245, 255, 0.045) 28px 29px, transparent 30px 62px),
+    radial-gradient(circle at 50% 14%, transparent 0 22%, rgba(3, 6, 10, 0.12) 60%, rgba(3, 6, 10, 0.42) 100%);
   background-repeat: repeat;
-  background-size: min(960px, 124vw) auto;
-  background-position: center 34px;
-}
-
-.trace-layer-a {
-  opacity: var(--pcb-trace-opacity);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='960' height='560' viewBox='0 0 960 560'%3E%3Cg fill='none' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M48 112 L126 112 L174 64 L292 64 L340 112 L438 112 L486 160 L612 160' stroke='%2300f5ff' stroke-width='3.2' stroke-opacity='.56'/%3E%3Cpath d='M174 64 L224 114 L224 184 L274 234 L386 234 L432 188 L514 188' stroke='%23b7ff1a' stroke-width='2.9' stroke-opacity='.5'/%3E%3Cpath d='M92 402 L170 402 L218 354 L330 354 L378 306 L514 306 L560 260 L666 260' stroke='%2300f5ff' stroke-width='2.9' stroke-opacity='.46'/%3E%3Cpath d='M246 510 L316 510 L366 460 L478 460 L526 412 L650 412 L696 366 L820 366' stroke='%23b7ff1a' stroke-width='2.8' stroke-opacity='.44'/%3E%3Cpath d='M714 82 L790 82 L836 128 L836 204 L790 250 L674 250 L626 298 L538 298' stroke='%2300f5ff' stroke-width='3' stroke-opacity='.45'/%3E%3Cpath d='M612 160 L666 214 L666 260 L716 310 L824 310 L872 358' stroke='%23ff3df2' stroke-width='2.4' stroke-opacity='.24'/%3E%3Cpath d='M52 248 L132 248 L180 296 L288 296 L336 248 L432 248' stroke='%23ffd23f' stroke-width='2.4' stroke-opacity='.3'/%3E%3Cpath d='M432 248 L480 296 L538 296' stroke='%23b7ff1a' stroke-width='2.5' stroke-opacity='.36'/%3E%3Cpath d='M386 234 L434 282 L434 350 L482 398 L526 412' stroke='%23b7ff1a' stroke-width='2.5' stroke-opacity='.34'/%3E%3Cpath d='M790 250 L838 202 L910 202' stroke='%2300f5ff' stroke-width='2.4' stroke-opacity='.34'/%3E%3Cpath d='M330 354 L282 306 L282 226 L234 178' stroke='%2300f5ff' stroke-width='2.3' stroke-opacity='.32'/%3E%3Cpath d='M820 366 L866 412 L912 412' stroke='%23b7ff1a' stroke-width='2.4' stroke-opacity='.34'/%3E%3C/g%3E%3Cg fill='%23061116' stroke-width='2.3'%3E%3Ccircle cx='48' cy='112' r='7.5' stroke='%2300f5ff' stroke-opacity='.54'/%3E%3Ccircle cx='174' cy='64' r='7' stroke='%23b7ff1a' stroke-opacity='.5'/%3E%3Ccircle cx='340' cy='112' r='7.5' stroke='%2300f5ff' stroke-opacity='.48'/%3E%3Ccircle cx='486' cy='160' r='7' stroke='%2300f5ff' stroke-opacity='.42'/%3E%3Ccircle cx='612' cy='160' r='6.5' stroke='%2300f5ff' stroke-opacity='.4'/%3E%3Ccircle cx='224' cy='184' r='6.5' stroke='%23b7ff1a' stroke-opacity='.44'/%3E%3Ccircle cx='386' cy='234' r='7.5' stroke='%23b7ff1a' stroke-opacity='.44'/%3E%3Ccircle cx='92' cy='402' r='7' stroke='%2300f5ff' stroke-opacity='.42'/%3E%3Ccircle cx='330' cy='354' r='7.5' stroke='%2300f5ff' stroke-opacity='.42'/%3E%3Ccircle cx='514' cy='306' r='7' stroke='%2300f5ff' stroke-opacity='.38'/%3E%3Ccircle cx='666' cy='260' r='7.5' stroke='%23b7ff1a' stroke-opacity='.38'/%3E%3Ccircle cx='714' cy='82' r='7' stroke='%2300f5ff' stroke-opacity='.4'/%3E%3Ccircle cx='790' cy='250' r='7' stroke='%2300f5ff' stroke-opacity='.38'/%3E%3Ccircle cx='650' cy='412' r='7' stroke='%23b7ff1a' stroke-opacity='.38'/%3E%3Ccircle cx='820' cy='366' r='7' stroke='%23b7ff1a' stroke-opacity='.36'/%3E%3Ccircle cx='432' cy='248' r='6.5' stroke='%23ffd23f' stroke-opacity='.3'/%3E%3C/g%3E%3C/svg%3E");
-}
-
-.trace-layer-b {
-  opacity: var(--pcb-pulse-opacity);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='960' height='560' viewBox='0 0 960 560'%3E%3Cg fill='none' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M48 112 L126 112 L174 64 L292 64 L340 112 L438 112 L486 160 L612 160' stroke='%2300f5ff' stroke-width='6.8' stroke-opacity='.58'/%3E%3Cpath d='M92 402 L170 402 L218 354 L330 354 L378 306 L514 306 L560 260 L666 260' stroke='%2300f5ff' stroke-width='6.2' stroke-opacity='.48'/%3E%3Cpath d='M246 510 L316 510 L366 460 L478 460 L526 412 L650 412 L696 366 L820 366' stroke='%23b7ff1a' stroke-width='6.2' stroke-opacity='.46'/%3E%3Cpath d='M612 160 L666 214 L666 260 L716 310 L824 310 L872 358' stroke='%23ff3df2' stroke-width='5.2' stroke-opacity='.2'/%3E%3C/g%3E%3C/svg%3E");
-  filter:
-    blur(0.2px)
-    drop-shadow(0 0 7px rgba(0, 245, 255, 0.34))
-    drop-shadow(0 0 12px rgba(183, 255, 26, 0.2));
-  animation: pcbRoutePulse 7.5s ease-in-out infinite, pcbTraceShift 12s steps(1, end) infinite;
-}
-
-.pcb-via-layer {
-  opacity: 0.48;
-  background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='960' height='560' viewBox='0 0 960 560'%3E%3Cg fill='%23061116' stroke-width='2.2'%3E%3Ccircle cx='48' cy='112' r='7.5' stroke='%2300f5ff' stroke-opacity='.5'/%3E%3Ccircle cx='174' cy='64' r='7' stroke='%23b7ff1a' stroke-opacity='.46'/%3E%3Ccircle cx='340' cy='112' r='7.5' stroke='%2300f5ff' stroke-opacity='.44'/%3E%3Ccircle cx='486' cy='160' r='7' stroke='%2300f5ff' stroke-opacity='.38'/%3E%3Ccircle cx='612' cy='160' r='6.5' stroke='%2300f5ff' stroke-opacity='.36'/%3E%3Ccircle cx='224' cy='184' r='6.5' stroke='%23b7ff1a' stroke-opacity='.4'/%3E%3Ccircle cx='386' cy='234' r='7.5' stroke='%23b7ff1a' stroke-opacity='.4'/%3E%3Ccircle cx='92' cy='402' r='7' stroke='%2300f5ff' stroke-opacity='.38'/%3E%3Ccircle cx='330' cy='354' r='7.5' stroke='%2300f5ff' stroke-opacity='.38'/%3E%3Ccircle cx='514' cy='306' r='7' stroke='%2300f5ff' stroke-opacity='.34'/%3E%3Ccircle cx='666' cy='260' r='7.5' stroke='%23b7ff1a' stroke-opacity='.34'/%3E%3Ccircle cx='714' cy='82' r='7' stroke='%2300f5ff' stroke-opacity='.36'/%3E%3Ccircle cx='790' cy='250' r='7' stroke='%2300f5ff' stroke-opacity='.34'/%3E%3Ccircle cx='650' cy='412' r='7' stroke='%23b7ff1a' stroke-opacity='.34'/%3E%3Ccircle cx='820' cy='366' r='7' stroke='%23b7ff1a' stroke-opacity='.32'/%3E%3Ccircle cx='432' cy='248' r='6.5' stroke='%23ffd23f' stroke-opacity='.28'/%3E%3C/g%3E%3C/svg%3E");
-  background-repeat: repeat;
-  background-size: min(960px, 124vw) auto;
-  background-position: center 34px;
-  filter: drop-shadow(0 0 6px rgba(0, 245, 255, 0.18));
+  background-size: var(--pcb-pattern-size) auto, auto, auto;
+  background-position: center 36px, 0 0, 0 0;
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  animation: pcbSubtlePulse 10s ease-in-out infinite, pcbGlitchLite 16s steps(1, end) infinite;
 }
 
 :root[data-theme="light"] .pcb-bg {
-  --pcb-board: #eff8e8;
-  --pcb-grid: rgba(0, 108, 146, 0.034);
-  --pcb-grid-strong: rgba(117, 185, 0, 0.032);
-  --pcb-dim: 0.34;
-  --pcb-trace-opacity: 0.24;
-  --pcb-pulse-opacity: 0.11;
-  --pcb-glitch-opacity: 0.09;
+  --pcb-trace-opacity: 0.22;
+  --pcb-glow-opacity: 0.08;
   background:
+    linear-gradient(rgba(0, 108, 146, 0.014) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 108, 146, 0.014) 1px, transparent 1px),
     radial-gradient(circle at 14% 10%, rgba(0, 108, 146, 0.08), transparent 28%),
     radial-gradient(circle at 86% 18%, rgba(117, 185, 0, 0.08), transparent 30%),
     linear-gradient(180deg, rgba(238, 248, 232, 0.78), rgba(255, 247, 223, 0.9));
+  background-size: 96px 96px, 96px 96px, auto, auto, auto;
 }
 
-:root[data-theme="light"] .pcb-bg::after {
-  background:
-    radial-gradient(circle at 50% 12%, transparent 0 24%, rgba(255, 252, 234, 0.1) 60%, rgba(255, 252, 234, 0.4) 100%),
-    linear-gradient(90deg, rgba(255, 252, 234, 0.38), transparent 18% 82%, rgba(255, 252, 234, 0.36));
-}
-
-:root[data-theme="light"] .pcb-trace-layer {
-  filter: none;
-}
-
-.pcb-bg.is-low-power .trace-layer-b {
+.pcb-bg.is-low-power::after {
   display: none;
 }
 
-.pcb-bg.is-low-power::before {
-  display: none;
-}
-
-@keyframes pcbRoutePulse {
+@keyframes pcbSubtlePulse {
   0%,
   100% {
-    opacity: calc(var(--pcb-pulse-opacity) * 0.66);
-    filter:
-      blur(0.2px)
-      drop-shadow(0 0 5px rgba(0, 245, 255, 0.28))
-      drop-shadow(0 0 9px rgba(183, 255, 26, 0.16));
+    opacity: calc(var(--pcb-glow-opacity) * 0.72);
   }
   50% {
-    opacity: var(--pcb-pulse-opacity);
-    filter:
-      blur(0.2px)
-      drop-shadow(0 0 9px rgba(0, 245, 255, 0.45))
-      drop-shadow(0 0 18px rgba(183, 255, 26, 0.26));
+    opacity: var(--pcb-glow-opacity);
   }
 }
 
-@keyframes pcbTraceShift {
+@keyframes pcbGlitchLite {
   0%,
-  88%,
+  92%,
   100% {
     transform: translate3d(0, 0, 0);
   }
-  90% {
+  93% {
     transform: translate3d(1px, 0, 0);
   }
-  92% {
+  94% {
     transform: translate3d(-1px, 1px, 0);
+  }
+  95% {
+    transform: translate3d(0, 0, 0);
   }
 }
 
-@keyframes pcbGlitch {
-  0%,
-  84%,
-  100% {
-    opacity: calc(var(--pcb-glitch-opacity) * 0.62);
-    transform: translate3d(0, 0, 0);
+@media (max-width: 768px) {
+  .pcb-bg {
+    --pcb-trace-opacity: 0.2;
+    --pcb-glow-opacity: 0;
+    --pcb-pattern-size: 920px;
   }
-  86% {
-    opacity: var(--pcb-glitch-opacity);
-    transform: translate3d(1px, -1px, 0);
-  }
-  87% {
-    opacity: calc(var(--pcb-glitch-opacity) * 0.45);
-    transform: translate3d(-1px, 1px, 0);
-  }
-  89% {
-    opacity: calc(var(--pcb-glitch-opacity) * 0.74);
-    transform: translate3d(0, 0, 0);
+
+  .pcb-bg::after {
+    display: none;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .trace-layer-b,
-  .pcb-bg::before {
+  .pcb-bg::after {
     animation: none;
   }
 }
