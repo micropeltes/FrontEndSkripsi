@@ -245,7 +245,7 @@ export default function SensorHistoryPage({ fluid = false }) {
           </CardContent>
         </Card>
 
-        <Card className="panel">
+        <Card className="panel clean-chart-shell">
           <CardHeader>
             <CardTitle>Realtime Line Chart</CardTitle>
             <CardDescription>Rendering dinamis berdasarkan daftar sensor supported.</CardDescription>

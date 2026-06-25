@@ -13,6 +13,10 @@ import { Button } from "@/components/ui/button";
 
 const EXTRA_LINKS = [
   { to: "/monitoring", label: "Latest" },
+  { to: "/command", label: "Command" },
+  { to: "/thresholds", label: "Threshold" },
+  { to: "/compare", label: "Compare" },
+  { to: "/reports/pdf", label: "PDF" },
   { to: "/history", label: "History" },
   { to: "/tools/convert", label: "Convert ADC" },
   { to: "/calibration", label: "Calibration" }
