@@ -1,31 +1,33 @@
 import { motion, useMotionValue, useSpring } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-function TrailDot({ mouseX, mouseY, size, opacity, lag }) {
+function TrailLight({ mouseX, mouseY, width, height, opacity, lag, variant }) {
   const x = useSpring(mouseX, {
-    stiffness: 360 - lag * 24,
-    damping: 30 + lag * 2,
-    mass: 0.25 + lag * 0.02
+    stiffness: Math.max(120, 440 - lag * 42),
+    damping: 28 + lag * 3,
+    mass: 0.22 + lag * 0.04
   });
   const y = useSpring(mouseY, {
-    stiffness: 360 - lag * 24,
-    damping: 30 + lag * 2,
-    mass: 0.25 + lag * 0.02
+    stiffness: Math.max(120, 440 - lag * 42),
+    damping: 28 + lag * 3,
+    mass: 0.22 + lag * 0.04
   });
 
   return (
     <motion.span
-      className="cursor-dot"
+      className="cursor-light"
       style={{
         x,
         y,
-        width: size,
-        height: size,
+        width,
+        height,
         opacity,
-        marginLeft: -size / 2,
-        marginTop: -size / 2
+        marginLeft: -width / 2,
+        marginTop: -height / 2
       }}
-    />
+    >
+      <span className={`cursor-light-visual ${variant}`} />
+    </motion.span>
   );
 }
 
@@ -37,8 +39,15 @@ export default function CursorTrail({ lowPower = false }) {
   const rafRef = useRef(0);
   const pendingRef = useRef({ x: -120, y: -120 });
 
-  const dots = useMemo(
-    () => [16, 12, 9, 7].map((size, index) => ({ size, index })),
+  const lights = useMemo(
+    () => [
+      { width: 42, height: 42, opacity: 0.34, lag: 0, variant: "cursor-halo" },
+      { width: 16, height: 16, opacity: 0.92, lag: 0, variant: "cursor-core" },
+      { width: 96, height: 6, opacity: 0.58, lag: 1, variant: "cursor-beam beam-cyan" },
+      { width: 74, height: 5, opacity: 0.5, lag: 2, variant: "cursor-beam beam-magenta" },
+      { width: 46, height: 3, opacity: 0.48, lag: 3, variant: "cursor-spark spark-lime" },
+      { width: 28, height: 3, opacity: 0.42, lag: 4, variant: "cursor-spark spark-pink" }
+    ],
     []
   );
 
@@ -118,14 +127,16 @@ export default function CursorTrail({ lowPower = false }) {
 
   return (
     <div className="cursor-trail" aria-hidden>
-      {dots.map((dot, idx) => (
-        <TrailDot
-          key={dot.size}
+      {lights.map((light, idx) => (
+        <TrailLight
+          key={`${light.variant}-${idx}`}
           mouseX={mouseX}
           mouseY={mouseY}
-          size={dot.size}
-          lag={idx}
-          opacity={0.34 - idx * 0.06}
+          width={light.width}
+          height={light.height}
+          lag={light.lag}
+          opacity={light.opacity}
+          variant={light.variant}
         />
       ))}
     </div>

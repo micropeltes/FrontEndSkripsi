@@ -232,15 +232,139 @@ pre,
   inset: 0;
   z-index: 70;
   pointer-events: none;
+  mix-blend-mode: screen;
 }
 
-.cursor-dot {
+.cursor-light {
   position: absolute;
   left: 0;
   top: 0;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+.cursor-light-visual {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+.cursor-halo {
   border-radius: 999px;
-  background: radial-gradient(circle at 28% 28%, #fff8d5, rgba(255, 210, 63, 0.78), rgba(52, 207, 255, 0.45));
-  box-shadow: 0 0 12px rgba(255, 210, 63, 0.5), 0 0 22px rgba(52, 207, 255, 0.24);
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.9) 0 7%, rgba(0, 245, 255, 0.52) 8% 28%, rgba(255, 45, 247, 0.2) 48%, transparent 72%);
+  box-shadow:
+    0 0 18px rgba(0, 245, 255, 0.72),
+    0 0 34px rgba(255, 45, 247, 0.48),
+    0 0 58px rgba(181, 255, 0, 0.22);
+  animation: cyberPulse 1.35s ease-in-out infinite;
+}
+
+.cursor-core {
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 34% 28%, #ffffff 0 18%, #d9ffff 19% 36%, #00f5ff 37% 62%, rgba(255, 45, 247, 0.9) 82%);
+  box-shadow:
+    0 0 8px rgba(255, 255, 255, 0.96),
+    0 0 18px rgba(0, 245, 255, 0.86),
+    0 0 28px rgba(255, 45, 247, 0.58);
+}
+
+.cursor-core::after {
+  content: "";
+  position: absolute;
+  inset: -7px;
+  border: 1px solid rgba(0, 245, 255, 0.56);
+  border-radius: inherit;
+  box-shadow: 0 0 16px rgba(0, 245, 255, 0.44);
+}
+
+.cursor-beam,
+.cursor-spark {
+  border-radius: 999px;
+  clip-path: polygon(0 50%, 10% 0, 100% 0, 88% 100%, 10% 100%);
+  transform-origin: center;
+}
+
+.cursor-beam {
+  transform: rotate(-18deg);
+  background:
+    linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.95) 18%, currentColor 43%, transparent 100%);
+  filter: drop-shadow(0 0 8px currentColor) drop-shadow(0 0 18px currentColor);
+  animation: cyberTrace 0.82s steps(2, end) infinite;
+}
+
+.beam-cyan {
+  color: #00f5ff;
+}
+
+.beam-magenta {
+  color: #ff2df7;
+  transform: rotate(20deg);
+  animation-delay: -0.28s;
+}
+
+.cursor-spark {
+  transform: rotate(-38deg);
+  background: linear-gradient(90deg, transparent, currentColor, transparent);
+  filter: drop-shadow(0 0 7px currentColor);
+  animation: cyberSpark 0.9s ease-in-out infinite;
+}
+
+.spark-lime {
+  color: #b7ff1a;
+}
+
+.spark-pink {
+  color: #ff2d55;
+  transform: rotate(34deg);
+  animation-delay: -0.34s;
+}
+
+.cursor-beam::after,
+.cursor-spark::after {
+  content: "";
+  position: absolute;
+  inset: -2px 18%;
+  background: repeating-linear-gradient(90deg, transparent 0 7px, rgba(255, 255, 255, 0.72) 8px 10px, transparent 11px 16px);
+  opacity: 0.38;
+}
+
+@keyframes cyberPulse {
+  0%,
+  100% {
+    transform: scale(0.88);
+    filter: saturate(1.12);
+  }
+  50% {
+    transform: scale(1.08);
+    filter: saturate(1.55);
+  }
+}
+
+@keyframes cyberTrace {
+  0%,
+  100% {
+    opacity: 0.42;
+    filter: drop-shadow(0 0 6px currentColor) drop-shadow(0 0 15px currentColor);
+  }
+  45% {
+    opacity: 0.86;
+    filter: drop-shadow(0 0 11px currentColor) drop-shadow(0 0 26px currentColor);
+  }
+  62% {
+    opacity: 0.34;
+  }
+}
+
+@keyframes cyberSpark {
+  0%,
+  100% {
+    opacity: 0.24;
+  }
+  40% {
+    opacity: 0.82;
+  }
 }
 
 .navbar,
