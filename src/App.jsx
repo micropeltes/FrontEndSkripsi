@@ -1,6 +1,5 @@
 import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
-import CursorTrail from "./components/CursorTrail";
 import DynamicBackground from "./components/DynamicBackground";
 import Navbar from "./components/Navbar";
 import { useBackendHealth } from "./composables/useBackendHealth";
@@ -111,7 +110,6 @@ function OnePageFlow({ lowPower, theme, onToggleTheme, healthStatus, healthMessa
   return (
     <div className={`app-shell cyberpunk-app theme ${lowPower ? "low-power" : ""}`}>
       <DynamicBackground lowPower={lowPower} />
-      <CursorTrail lowPower={lowPower} />
       <Navbar
         theme={theme}
         onToggleTheme={onToggleTheme}
@@ -154,7 +152,6 @@ function StandalonePageShell({ lowPower, theme, onToggleTheme, healthStatus, hea
   return (
     <div className={`app-shell cyberpunk-app theme ${lowPower ? "low-power" : ""}`}>
       <DynamicBackground lowPower={lowPower} />
-      <CursorTrail lowPower={lowPower} />
       <Navbar
         theme={theme}
         onToggleTheme={onToggleTheme}
