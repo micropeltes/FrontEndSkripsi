@@ -11,6 +11,10 @@ const SensorMonitorPage = lazy(() => import("./pages/SensorMonitorPage"));
 const SensorHistoryPage = lazy(() => import("./pages/SensorHistoryPage"));
 const SensorConvertPage = lazy(() => import("./pages/SensorConvertPage"));
 const CalibrationManagerPage = lazy(() => import("./pages/CalibrationManagerPage"));
+const NervCommandViewPage = lazy(() => import("./pages/NervCommandViewPage"));
+const ThresholdSettingsPage = lazy(() => import("./pages/ThresholdSettingsPage"));
+const ExportPdfPage = lazy(() => import("./pages/ExportPdfPage"));
+const SensorComparePage = lazy(() => import("./pages/SensorComparePage"));
 
 const THEME_STORAGE_KEY = "dashboard-theme";
 
@@ -266,6 +270,63 @@ export default function App() {
               healthMessage={healthMessage}
             >
               <SensorConvertPage />
+            </StandalonePageShell>
+          )}
+        />
+
+        <Route
+          path="/command"
+          element={(
+            <StandalonePageShell
+              lowPower={lowPower}
+              theme={theme}
+              onToggleTheme={toggleTheme}
+              healthStatus={healthStatus}
+              healthMessage={healthMessage}
+            >
+              <NervCommandViewPage />
+            </StandalonePageShell>
+          )}
+        />
+        <Route
+          path="/thresholds"
+          element={(
+            <StandalonePageShell
+              lowPower={lowPower}
+              theme={theme}
+              onToggleTheme={toggleTheme}
+              healthStatus={healthStatus}
+              healthMessage={healthMessage}
+            >
+              <ThresholdSettingsPage />
+            </StandalonePageShell>
+          )}
+        />
+        <Route
+          path="/reports/pdf"
+          element={(
+            <StandalonePageShell
+              lowPower={lowPower}
+              theme={theme}
+              onToggleTheme={toggleTheme}
+              healthStatus={healthStatus}
+              healthMessage={healthMessage}
+            >
+              <ExportPdfPage />
+            </StandalonePageShell>
+          )}
+        />
+        <Route
+          path="/compare"
+          element={(
+            <StandalonePageShell
+              lowPower={lowPower}
+              theme={theme}
+              onToggleTheme={toggleTheme}
+              healthStatus={healthStatus}
+              healthMessage={healthMessage}
+            >
+              <SensorComparePage />
             </StandalonePageShell>
           )}
         />

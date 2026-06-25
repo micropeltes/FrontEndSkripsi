@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
@@ -8,6 +9,8 @@ import {
   ZapIcon
 } from "@untitledui/icons-react/outline";
 import { Badge } from "@/components/ui/badge";
+import { useSensorData } from "@/composables/useSensorData";
+import { getHazardEventFromRows } from "@/utils/hazardEvents";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -36,6 +39,12 @@ const FEATURES = [
 
 export default function LandingPage({ lowPower = false, onEnterDashboard, fluid = false }) {
   const hasFluidAction = typeof onEnterDashboard === "function";
+  const { items: latestItems } = useSensorData({
+    initialLimit: 1,
+    initialDeviceId: "",
+    pollIntervalMs: 5000
+  });
+  const hazardEvent = useMemo(() => getHazardEventFromRows(latestItems), [latestItems]);
 
   const heroLeftAnimation = lowPower
     ? {}
@@ -66,6 +75,21 @@ export default function LandingPage({ lowPower = false, onEnterDashboard, fluid 
               Garbage Odor Detection adalah landing page untuk pemantauan kualitas udara berbasis IoT. Dari sini,
               pengguna bisa langsung masuk ke dashboard sensor yang interaktif dengan analitik waktu nyata.
             </p>
+
+            {hazardEvent && (
+              <Card className="hazard-event hazard-event-landing" role="alert">
+                <CardHeader>
+                  <Badge variant="outline" className="hazard-badge">Hazard Event</Badge>
+                  <CardTitle>{hazardEvent.label} danger threshold</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p>
+                    {hazardEvent.formattedValue} ppm melewati batas {hazardEvent.formattedThreshold} ppm pada device {hazardEvent.deviceId}.
+                  </p>
+                  <small>Update: {hazardEvent.formattedTime}</small>
+                </CardContent>
+              </Card>
+            )}
 
             <div className="hero-actions">
               {hasFluidAction ? (
@@ -103,7 +127,7 @@ export default function LandingPage({ lowPower = false, onEnterDashboard, fluid 
             <Card className="visual-card pulse-c">
               <CardContent>
                 <span>Status</span>
-                <strong>NORMAL</strong>
+                <strong>{hazardEvent ? "HAZARD" : "NORMAL"}</strong>
               </CardContent>
             </Card>
           </motion.div>
