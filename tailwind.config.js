@@ -4,6 +4,11 @@ export default {
   content: ["./index.html", "./src/**/*.{js,jsx}"],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["var(--font-body)", "Space Grotesk", "sans-serif"],
+        heading: ["var(--font-heading)", "Oxanium", "sans-serif"],
+        mono: ["var(--font-mono)", "JetBrains Mono", "monospace"]
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",

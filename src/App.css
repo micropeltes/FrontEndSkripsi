@@ -104,7 +104,7 @@ html {
 
 body {
   margin: 0;
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-family: var(--font-body), "Space Grotesk", "Segoe UI", sans-serif;
   background: var(--body-bg);
   color: var(--text-color);
 }
@@ -113,6 +113,55 @@ a {
   color: inherit;
   text-decoration: none;
 }
+
+h1,
+h2,
+h3,
+.card h2,
+.card h3,
+.card-title,
+.dashboard-hero h1,
+.landing-copy h1,
+.command-hero h1,
+.pdf-report-header h2 {
+  font-family: var(--font-heading), "Oxanium", sans-serif;
+  letter-spacing: 0.035em;
+}
+
+button,
+input,
+select,
+textarea,
+.btn,
+.nav-link,
+.card,
+.panel,
+.sensor-card,
+.control-card {
+  font-family: var(--font-body), "Space Grotesk", sans-serif;
+}
+
+code,
+pre,
+.value,
+.sensor-reading,
+.sensor-head p,
+.backend-indicator,
+.toast-title,
+.hazard-badge,
+.neon-badge,
+.command-status-card h3,
+.command-status-grid span,
+.report-summary-grid span,
+.report-stat-card strong,
+.status-normal,
+.status-warning,
+.status-danger,
+.status-unknown {
+  font-family: var(--font-mono), "JetBrains Mono", monospace;
+  font-variant-numeric: tabular-nums;
+}
+
 
 .app-shell {
   min-height: 100vh;
