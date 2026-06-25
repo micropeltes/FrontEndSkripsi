@@ -4,6 +4,7 @@ import SensorChart from "@/components/charts/SensorChart";
 import { useSensorData } from "@/composables/useSensorData";
 import { sanitizeDeviceId, sanitizeLimit, SENSOR_LIMIT_MAX, SENSOR_LIMIT_MIN } from "@/services/sensorService";
 import { sanitizeMovingAverageWindow } from "@/utils/movingAverage";
+import { getHazardEventFromRows } from "@/utils/hazardEvents";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -96,6 +97,8 @@ export default function SensorDashboard({ fluid = false }) {
     [movingAverageWindow]
   );
 
+  const hazardEvent = useMemo(() => getHazardEventFromRows(items), [items]);
+
   const applyFilters = () => {
     const nextLimit = sanitizeLimit(limitInput, query.limit);
     const nextDeviceId = sanitizeDeviceId(deviceInput);
@@ -137,6 +140,26 @@ export default function SensorDashboard({ fluid = false }) {
             </Button>
           </div>
         </header>
+
+        {hazardEvent && (
+          <Card className="panel hazard-event hazard-event-dashboard" role="alert">
+            <CardHeader>
+              <Badge variant="outline" className="hazard-badge">Hazard Event</Badge>
+              <CardTitle>Threshold danger terpenuhi</CardTitle>
+              <CardDescription>
+                {hazardEvent.label} mencapai {hazardEvent.formattedValue} ppm, melewati batas danger {hazardEvent.formattedThreshold} ppm.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="hazard-event-grid">
+                <p><strong>Sensor:</strong> {hazardEvent.label}</p>
+                <p><strong>Device:</strong> {hazardEvent.deviceId}</p>
+                <p><strong>Waktu:</strong> {hazardEvent.formattedTime}</p>
+                <p><strong>Jumlah trigger:</strong> {hazardEvent.triggeredSensors.length} sensor</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="cards summary-cards">
           <Card className="card">

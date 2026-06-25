@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { getSensorRisk } from "@/utils/hazardEvents";
 import {
   FALLBACK_SENSORS,
   fetchLatestAllSensors,
@@ -12,15 +13,6 @@ import {
 } from "@/services/enoseService";
 
 const POLL_INTERVAL_MS = 2000;
-
-const RISK_THRESHOLDS = {
-  mq135: { warning: 50, danger: 200 },
-  nh3_mics: { warning: 15, danger: 50 },
-  co: { warning: 10, danger: 100 },
-  no2: { warning: 1, danger: 5 },
-  nh3_mems: { warning: 15, danger: 50 },
-  h2s: { warning: 1, danger: 100 }
-};
 
 const dateTimeFormatter = new Intl.DateTimeFormat("id-ID", {
   timeZone: "Asia/Jakarta",
@@ -77,22 +69,6 @@ function formatNumber(value, digits = 2) {
   return num.toFixed(digits);
 }
 
-function getRisk(sensor, ppm) {
-  if (!Number.isFinite(ppm)) {
-    return { key: "unknown", text: "Tidak Ada Data" };
-  }
-
-  const limit = RISK_THRESHOLDS[sensor] ?? { warning: 0.003, danger: 0.03 };
-  if (ppm >= limit.danger) {
-    return { key: "danger", text: "Bahaya" };
-  }
-
-  if (ppm >= limit.warning) {
-    return { key: "warning", text: "Warning" };
-  }
-
-  return { key: "normal", text: "Normal" };
-}
 
 export default function SensorMonitorPage({ fluid = false }) {
   const [supportedSensors, setSupportedSensors] = useState([...FALLBACK_SENSORS]);
@@ -223,7 +199,7 @@ export default function SensorMonitorPage({ fluid = false }) {
       .map((sensor) => {
         const item = latestBySensor.get(sensor) ?? null;
         const ppm = item?.ppm ?? null;
-        const risk = getRisk(sensor, ppm);
+        const risk = getSensorRisk(sensor, ppm);
         return { sensor, item, ppm, risk };
       });
   }, [latestBySensor, supportedSensors, showNh3Mics]);
@@ -233,7 +209,7 @@ export default function SensorMonitorPage({ fluid = false }) {
       return { key: "unknown", text: "Tidak Ada Data" };
     }
 
-    return getRisk(latestSensor.sensor, latestSensor.ppm);
+    return getSensorRisk(latestSensor.sensor, latestSensor.ppm);
   }, [latestSensor]);
 
   return (
