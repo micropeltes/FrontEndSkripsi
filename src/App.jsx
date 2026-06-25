@@ -109,7 +109,7 @@ function OnePageFlow({ lowPower, theme, onToggleTheme, healthStatus, healthMessa
   }, [updateActiveSection]);
 
   return (
-    <div className={`app-shell theme ${lowPower ? "low-power" : ""}`}>
+    <div className={`app-shell cyberpunk-app theme ${lowPower ? "low-power" : ""}`}>
       <DynamicBackground lowPower={lowPower} />
       <CursorTrail lowPower={lowPower} />
       <Navbar
@@ -152,7 +152,7 @@ function OnePageFlow({ lowPower, theme, onToggleTheme, healthStatus, healthMessa
 
 function StandalonePageShell({ lowPower, theme, onToggleTheme, healthStatus, healthMessage, children }) {
   return (
-    <div className={`app-shell theme ${lowPower ? "low-power" : ""}`}>
+    <div className={`app-shell cyberpunk-app theme ${lowPower ? "low-power" : ""}`}>
       <DynamicBackground lowPower={lowPower} />
       <CursorTrail lowPower={lowPower} />
       <Navbar
