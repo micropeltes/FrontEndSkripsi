@@ -1,9 +1,5 @@
-export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/+$/, "");
-const API_BASE = (import.meta.env.VITE_API_BASE ?? `${API_BASE_URL}/api/v1`).replace(/\/+$/, "");
-
-function buildApiRootUrl(path: string): string {
-  return `${API_BASE_URL}${path}`;
-}
+export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000").replace(/\/+$/, "");
+const API_BASE = `${API_BASE_URL}/api/v1`;
 const parsedTimeout = Number.parseInt(import.meta.env.VITE_API_TIMEOUT_MS ?? "10000", 10);
 const REQUEST_TIMEOUT_MS = Number.isFinite(parsedTimeout) && parsedTimeout > 0 ? parsedTimeout : 10000;
 
@@ -46,12 +42,6 @@ type HealthResponse = {
   online: boolean;
   status: string;
   payload: unknown;
-};
-
-type MqttHealthResponse = HealthResponse & {
-  connected: boolean;
-  enabled: boolean | null;
-  started: boolean | null;
 };
 
 export type FlattenedSensorRow = {
@@ -293,35 +283,20 @@ export function flattenSensorItems(items: unknown): FlattenedSensorRow[] {
   });
 }
 
-function toBooleanOrNull(value: unknown): boolean | null {
-  return typeof value === "boolean" ? value : null;
-}
-
 export async function getApiHealth(signal?: AbortSignal): Promise<HealthResponse> {
-  const payload = await fetchJson(buildApiRootUrl("/health"), signal);
-  const rawStatus = payload && typeof payload === "object" && !Array.isArray(payload)
-    ? String((payload as Record<string, unknown>).status ?? "ok").toLowerCase()
-    : "ok";
-  const online = rawStatus === "ok" || rawStatus === "online" || rawStatus === "healthy";
-
-  return { online, status: online ? "online" : rawStatus, payload };
+  const payload = await fetchJson(`${API_BASE_URL}/health`, signal);
+  const status = payload && typeof payload === "object" && !Array.isArray(payload)
+    ? String((payload as Record<string, unknown>).status ?? "online")
+    : "online";
+  return { online: true, status, payload };
 }
 
-export async function getMqttHealth(signal?: AbortSignal): Promise<MqttHealthResponse> {
-  const payload = await fetchJson(buildApiRootUrl("/health/mqtt"), signal);
-  const raw = payload && typeof payload === "object" && !Array.isArray(payload)
-    ? (payload as Record<string, unknown>)
-    : {};
-  const connected = toBooleanOrNull(raw.connected) ?? false;
-  const enabled = toBooleanOrNull(raw.enabled);
-  const started = toBooleanOrNull(raw.started);
-
-  let status = connected ? "connected" : "disconnected";
-  if (enabled === false) {
-    status = "unhealthy";
-  }
-
-  return { online: true, connected, enabled, started, status, payload };
+export async function getMqttHealth(signal?: AbortSignal): Promise<HealthResponse> {
+  const payload = await fetchJson(`${API_BASE_URL}/health/mqtt`, signal);
+  const status = payload && typeof payload === "object" && !Array.isArray(payload)
+    ? String((payload as Record<string, unknown>).status ?? "connected")
+    : "connected";
+  return { online: true, status, payload };
 }
 
 export function buildLatestSensorsUrl(limit: number, deviceId = ""): string {

@@ -125,9 +125,10 @@ export default function SensorDashboard({ fluid = false }) {
   const refreshHealth = async () => {
     setLoadingHealth(true);
     const [apiResult, mqttResult] = await Promise.allSettled([getApiHealth(), getMqttHealth()]);
-    setApiHealth(apiResult.status === "fulfilled" && apiResult.value.online ? "online" : "offline");
+    setApiHealth(apiResult.status === "fulfilled" ? "online" : "offline");
     if (mqttResult.status === "fulfilled") {
-      setMqttHealth(mqttResult.value.status);
+      const mqttStatus = String(mqttResult.value.status || "connected").toLowerCase();
+      setMqttHealth(mqttStatus.includes("ok") || mqttStatus.includes("connect") || mqttStatus === "healthy" ? "connected" : "unhealthy");
     } else {
       setMqttHealth("disconnected");
     }
