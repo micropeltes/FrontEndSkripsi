@@ -2,7 +2,18 @@ import { useEffect, useMemo, useState } from "react";
 import { ClockRefreshIcon } from "@untitledui/icons-react/outline";
 import SensorChart from "@/components/charts/SensorChart";
 import { useSensorData } from "@/composables/useSensorData";
-import { sanitizeDeviceId, sanitizeLimit, SENSOR_LIMIT_MAX, SENSOR_LIMIT_MIN } from "@/services/sensorService";
+import {
+  flattenSensorItems,
+  getApiHealth,
+  getLatestSensors,
+  getMqttHealth,
+  getSensorHistory,
+  sanitizeDeviceId,
+  sanitizeLimit,
+  SENSOR_LIMIT_MAX,
+  SENSOR_LIMIT_MIN,
+  validateHistoryTimeRange
+} from "@/services/sensorService";
 import { sanitizeMovingAverageWindow } from "@/utils/movingAverage";
 import { getHazardEventFromRows } from "@/utils/hazardEvents";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +21,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
-const DEFAULT_LIMIT = 50;
+const DEFAULT_LIMIT = 1000;
+const DEFAULT_DEVICE_ID = "esp32c3-01";
 const DEFAULT_MOVING_AVERAGE_WINDOW = 5;
 const POLL_INTERVAL_MS = 5000;
 
@@ -66,13 +78,22 @@ export default function SensorDashboard({ fluid = false }) {
     refresh
   } = useSensorData({
     initialLimit: DEFAULT_LIMIT,
-    initialDeviceId: "",
+    initialDeviceId: DEFAULT_DEVICE_ID,
     pollIntervalMs: POLL_INTERVAL_MS,
     paused: pollingPaused || !pageVisible
   });
 
+  const today = new Date().toISOString().slice(0, 10);
   const [limitInput, setLimitInput] = useState(String(query.limit));
-  const [deviceInput, setDeviceInput] = useState(query.deviceId);
+  const [deviceInput, setDeviceInput] = useState(query.deviceId || DEFAULT_DEVICE_ID);
+  const [startTimeInput, setStartTimeInput] = useState(`${today}T00:00`);
+  const [endTimeInput, setEndTimeInput] = useState(`${today}T23:59`);
+  const [loadingHealth, setLoadingHealth] = useState(false);
+  const [loadingSensors, setLoadingSensors] = useState(false);
+  const [apiHealth, setApiHealth] = useState("checking");
+  const [mqttHealth, setMqttHealth] = useState("checking");
+  const [sensorError, setSensorError] = useState("");
+  const [tableRows, setTableRows] = useState([]);
 
   useEffect(() => {
     const onVisibilityChange = () => {
@@ -98,6 +119,65 @@ export default function SensorDashboard({ fluid = false }) {
   );
 
   const hazardEvent = useMemo(() => getHazardEventFromRows(items), [items]);
+
+  const toIsoFromInput = (value) => (value ? new Date(value).toISOString() : "");
+
+  const refreshHealth = async () => {
+    setLoadingHealth(true);
+    const [apiResult, mqttResult] = await Promise.allSettled([getApiHealth(), getMqttHealth()]);
+    setApiHealth(apiResult.status === "fulfilled" && apiResult.value.online ? "online" : "offline");
+    if (mqttResult.status === "fulfilled") {
+      setMqttHealth(mqttResult.value.status);
+    } else {
+      setMqttHealth("disconnected");
+    }
+    setLoadingHealth(false);
+  };
+
+  useEffect(() => {
+    refreshHealth();
+    const timer = setInterval(refreshHealth, 10000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const loadLatest = async () => {
+    const nextLimit = sanitizeLimit(limitInput, query.limit);
+    const nextDeviceId = sanitizeDeviceId(deviceInput);
+    setLoadingSensors(true);
+    setSensorError("");
+    try {
+      const result = await getLatestSensors({ limit: nextLimit, device_id: nextDeviceId });
+      setTableRows(flattenSensorItems(result.raw_items ?? []));
+      setQuery({ limit: nextLimit, deviceId: nextDeviceId });
+    } catch (error) {
+      setSensorError(error instanceof Error ? error.message : "Gagal memuat data latest sensor.");
+    } finally {
+      setLoadingSensors(false);
+    }
+  };
+
+  const loadHistory = async () => {
+    const nextLimit = sanitizeLimit(limitInput, query.limit);
+    const nextDeviceId = sanitizeDeviceId(deviceInput);
+    const start_time = toIsoFromInput(startTimeInput);
+    const end_time = toIsoFromInput(endTimeInput);
+    const validationError = validateHistoryTimeRange(start_time, end_time);
+    if (validationError) {
+      setSensorError(validationError);
+      return;
+    }
+
+    setLoadingSensors(true);
+    setSensorError("");
+    try {
+      const result = await getSensorHistory({ device_id: nextDeviceId, start_time, end_time, limit: nextLimit });
+      setTableRows(flattenSensorItems(result.raw_items ?? []));
+    } catch (error) {
+      setSensorError(error instanceof Error ? error.message : "Gagal memuat history sensor.");
+    } finally {
+      setLoadingSensors(false);
+    }
+  };
 
   const applyFilters = () => {
     const nextLimit = sanitizeLimit(limitInput, query.limit);
@@ -182,8 +262,14 @@ export default function SensorDashboard({ fluid = false }) {
           </Card>
           <Card className="card">
             <CardHeader>
-              <CardDescription>Status Polling</CardDescription>
-              <CardTitle className="value">{pollingPaused ? "Paused" : `${POLL_INTERVAL_MS / 1000} detik`}</CardTitle>
+              <CardDescription>API Health</CardDescription>
+              <CardTitle className={`value status-${apiHealth === "online" ? "normal" : apiHealth === "checking" ? "unknown" : "danger"}`}>{apiHealth === "online" ? "Online" : apiHealth === "checking" ? "Checking" : "Offline"}</CardTitle>
+            </CardHeader>
+          </Card>
+                  <Card className="card">
+            <CardHeader>
+              <CardDescription>MQTT Health</CardDescription>
+              <CardTitle className={`value status-${mqttHealth === "connected" ? "normal" : mqttHealth === "checking" ? "unknown" : mqttHealth === "unhealthy" ? "warning" : "danger"}`}>{mqttHealth === "connected" ? "Connected" : mqttHealth === "checking" ? "Checking" : mqttHealth === "unhealthy" ? "Unhealthy" : "Disconnected"}</CardTitle>
             </CardHeader>
           </Card>
         </div>
@@ -192,7 +278,7 @@ export default function SensorDashboard({ fluid = false }) {
           <CardHeader>
             <CardTitle>Filter Data</CardTitle>
             <CardDescription>
-              `limit` valid {SENSOR_LIMIT_MIN}..{SENSOR_LIMIT_MAX}, `device_id` opsional, moving average window default {DEFAULT_MOVING_AVERAGE_WINDOW}.
+              `limit` valid {SENSOR_LIMIT_MIN}..{SENSOR_LIMIT_MAX}, `device_id` default {DEFAULT_DEVICE_ID}, history wajib memakai start_time dan end_time.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -215,8 +301,18 @@ export default function SensorDashboard({ fluid = false }) {
                   value={deviceInput}
                   onChange={(event) => setDeviceInput(event.target.value)}
                   onKeyDown={applyFiltersOnEnter}
-                  placeholder="ESP-00"
+                  placeholder={DEFAULT_DEVICE_ID}
                 />
+              </label>
+
+              <label className="sensor-input-wrap">
+                <span className="field-label">Start Time</span>
+                <Input type="datetime-local" value={startTimeInput} onChange={(event) => setStartTimeInput(event.target.value)} />
+              </label>
+
+              <label className="sensor-input-wrap">
+                <span className="field-label">End Time</span>
+                <Input type="datetime-local" value={endTimeInput} onChange={(event) => setEndTimeInput(event.target.value)} />
               </label>
 
               <label className="sensor-input-wrap">
@@ -233,7 +329,10 @@ export default function SensorDashboard({ fluid = false }) {
             </div>
 
             <div className="sensor-filter-actions">
-              <Button type="button" onClick={applyFilters}>Terapkan Filter</Button>
+              <Button type="button" onClick={loadLatest} disabled={loadingSensors}>Load Latest</Button>
+              <Button type="button" variant="secondary" onClick={loadHistory} disabled={loadingSensors}>Load History</Button>
+              <Button type="button" variant="outline" onClick={refreshHealth} disabled={loadingHealth}>{loadingHealth ? "Checking..." : "Refresh Health"}</Button>
+              <Button type="button" variant="outline" onClick={applyFilters}>Terapkan Filter Chart</Button>
               <label className="ma-toggle">
                 <input
                   type="checkbox"
@@ -246,11 +345,11 @@ export default function SensorDashboard({ fluid = false }) {
           </CardContent>
         </Card>
 
-        {loading && <p className="info">Memuat data sensor terbaru...</p>}
-        {error && (
+        {(loading || loadingSensors) && <p className="info">Memuat data sensor...</p>}
+        {(error || sensorError) && (
           <Card className="panel">
             <CardContent>
-              <p className="error">{error}</p>
+              <p className="error">{sensorError || error}</p>
             </CardContent>
           </Card>
         )}
@@ -261,6 +360,33 @@ export default function SensorDashboard({ fluid = false }) {
             </CardContent>
           </Card>
         )}
+
+        <Card className="panel">
+          <CardHeader>
+            <CardTitle>Tabel Data Sensor</CardTitle>
+            <CardDescription>Data latest/history diflatten dari object sensors yang dinamis.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {tableRows.length === 0 ? (
+              <p className="sensor-empty">Belum ada data tabel. Klik Load Latest atau Load History.</p>
+            ) : (
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr><th>created_at</th><th>device_id</th><th>nama sensor</th><th>adc</th><th>voltage</th><th>ppm</th><th>unit</th></tr>
+                  </thead>
+                  <tbody>
+                    {tableRows.map((row, index) => (
+                      <tr key={`${row.created_at}-${row.device_id}-${row.sensor_name}-${index}`}>
+                        <td>{row.created_at || "-"}</td><td>{row.device_id || "-"}</td><td>{row.sensor_name}</td><td>{row.adc ?? "-"}</td><td>{row.voltage ?? "-"}</td><td>{row.ppm ?? "-"}</td><td>{row.unit || "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {!loading && !error && !empty && (
           <section className="sensor-dashboard-grid">
