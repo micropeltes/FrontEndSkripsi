@@ -1,4 +1,5 @@
-const API_BASE = (import.meta.env.VITE_API_BASE ?? "/api/v1").replace(/\/+$/, "");
+export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000").replace(/\/+$/, "");
+const API_BASE = `${API_BASE_URL}/api/v1`;
 const parsedTimeout = Number.parseInt(import.meta.env.VITE_API_TIMEOUT_MS ?? "10000", 10);
 const REQUEST_TIMEOUT_MS = Number.isFinite(parsedTimeout) && parsedTimeout > 0 ? parsedTimeout : 10000;
 
@@ -18,12 +19,39 @@ export type SensorRow = {
 export type LatestSensorsResponse = {
   count: number;
   items: SensorRow[];
+  raw_items?: unknown[];
 };
 
 type FetchLatestSensorsParams = {
   deviceId?: string;
+  device_id?: string;
   limit?: number;
   signal?: AbortSignal;
+};
+
+type FetchSensorHistoryParams = {
+  deviceId?: string;
+  device_id?: string;
+  start_time?: string;
+  end_time?: string;
+  limit?: number;
+  signal?: AbortSignal;
+};
+
+type HealthResponse = {
+  online: boolean;
+  status: string;
+  payload: unknown;
+};
+
+export type FlattenedSensorRow = {
+  created_at: string | null;
+  device_id: string;
+  sensor_name: string;
+  adc: number | null;
+  voltage: number | null;
+  ppm: number | null;
+  unit: string;
 };
 
 function toFiniteNumber(value: unknown): number | null {
@@ -141,11 +169,12 @@ function normalizeLatestPayload(payload: unknown): LatestSensorsResponse {
 
   return {
     count: countValue ?? sortedItems.length,
-    items: sortedItems
+    items: sortedItems,
+    raw_items: rawItems
   };
 }
 
-async function fetchJson(url: string, signal?: AbortSignal): Promise<unknown> {
+export async function fetchJson(url: string, signal?: AbortSignal): Promise<unknown> {
   const timeoutController = new AbortController();
   const onParentAbort = () => timeoutController.abort();
 
@@ -197,6 +226,79 @@ async function fetchJson(url: string, signal?: AbortSignal): Promise<unknown> {
   }
 }
 
+
+function appendOptionalParam(searchParams: URLSearchParams, key: string, value: unknown) {
+  if (value === null || value === undefined || value === "") {
+    return;
+  }
+  searchParams.set(key, String(value));
+}
+
+export function validateHistoryTimeRange(startTime?: string, endTime?: string): string {
+  if (!startTime || !endTime) {
+    return "start_time dan end_time wajib diisi sebelum memuat history.";
+  }
+
+  const startMs = Date.parse(startTime);
+  const endMs = Date.parse(endTime);
+  if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) {
+    return "Format start_time atau end_time tidak valid.";
+  }
+  if (startMs > endMs) {
+    return "start_time tidak boleh lebih besar dari end_time.";
+  }
+  return "";
+}
+
+export function flattenSensorItems(items: unknown): FlattenedSensorRow[] {
+  if (!Array.isArray(items)) {
+    return [];
+  }
+
+  return items.flatMap((item) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      return [];
+    }
+
+    const raw = item as Record<string, unknown>;
+    const sensors = raw.sensors && typeof raw.sensors === "object" && !Array.isArray(raw.sensors)
+      ? (raw.sensors as Record<string, unknown>)
+      : {};
+
+    return Object.entries(sensors).map(([sensorName, sensorValue]) => {
+      const sensor = sensorValue && typeof sensorValue === "object" && !Array.isArray(sensorValue)
+        ? (sensorValue as Record<string, unknown>)
+        : {};
+
+      return {
+        created_at: typeof raw.created_at === "string" ? raw.created_at : null,
+        device_id: toSafeDeviceId(raw.device_id),
+        sensor_name: sensorName,
+        adc: toFiniteNumber(sensor.adc),
+        voltage: toFiniteNumber(sensor.voltage),
+        ppm: toFiniteNumber(sensor.ppm),
+        unit: typeof sensor.unit === "string" ? sensor.unit : ""
+      };
+    });
+  });
+}
+
+export async function getApiHealth(signal?: AbortSignal): Promise<HealthResponse> {
+  const payload = await fetchJson(`${API_BASE_URL}/health`, signal);
+  const status = payload && typeof payload === "object" && !Array.isArray(payload)
+    ? String((payload as Record<string, unknown>).status ?? "online")
+    : "online";
+  return { online: true, status, payload };
+}
+
+export async function getMqttHealth(signal?: AbortSignal): Promise<HealthResponse> {
+  const payload = await fetchJson(`${API_BASE_URL}/health/mqtt`, signal);
+  const status = payload && typeof payload === "object" && !Array.isArray(payload)
+    ? String((payload as Record<string, unknown>).status ?? "connected")
+    : "connected";
+  return { online: true, status, payload };
+}
+
 export function buildLatestSensorsUrl(limit: number, deviceId = ""): string {
   const safeLimit = sanitizeLimit(limit);
   const safeDeviceId = sanitizeDeviceId(deviceId);
@@ -211,7 +313,31 @@ export function buildLatestSensorsUrl(limit: number, deviceId = ""): string {
 }
 
 export async function fetchLatestSensors(params: FetchLatestSensorsParams = {}): Promise<LatestSensorsResponse> {
-  const url = buildLatestSensorsUrl(params.limit ?? 50, params.deviceId ?? "");
+  const url = buildLatestSensorsUrl(params.limit ?? 100, params.device_id ?? params.deviceId ?? "");
   const payload = await fetchJson(url, params.signal);
+  return normalizeLatestPayload(payload);
+}
+
+
+export const getLatestSensors = fetchLatestSensors;
+
+export function buildSensorHistoryUrl(params: FetchSensorHistoryParams): string {
+  const searchParams = new URLSearchParams();
+  appendOptionalParam(searchParams, "device_id", sanitizeDeviceId(params.device_id ?? params.deviceId ?? ""));
+  appendOptionalParam(searchParams, "start_time", params.start_time);
+  appendOptionalParam(searchParams, "end_time", params.end_time);
+  appendOptionalParam(searchParams, "limit", sanitizeLimit(params.limit ?? 1000, 1000));
+
+  const query = searchParams.toString();
+  return `${API_BASE}/sensors/history${query ? `?${query}` : ""}`;
+}
+
+export async function getSensorHistory(params: FetchSensorHistoryParams): Promise<LatestSensorsResponse> {
+  const validationError = validateHistoryTimeRange(params.start_time, params.end_time);
+  if (validationError) {
+    throw new Error(validationError);
+  }
+
+  const payload = await fetchJson(buildSensorHistoryUrl(params), params.signal);
   return normalizeLatestPayload(payload);
 }
