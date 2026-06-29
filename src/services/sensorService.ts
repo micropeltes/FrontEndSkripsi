@@ -1,4 +1,6 @@
-export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000").replace(/\/+$/, "");
+const DEFAULT_API_BASE_URL = import.meta.env.DEV ? "http://127.0.0.1:8000" : window.location.origin;
+
+export const API_BASE_URL = sanitizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL ?? DEFAULT_API_BASE_URL);
 const API_BASE = `${API_BASE_URL}/api/v1`;
 const parsedTimeout = Number.parseInt(import.meta.env.VITE_API_TIMEOUT_MS ?? "10000", 10);
 const REQUEST_TIMEOUT_MS = Number.isFinite(parsedTimeout) && parsedTimeout > 0 ? parsedTimeout : 10000;
@@ -6,6 +8,32 @@ const REQUEST_TIMEOUT_MS = Number.isFinite(parsedTimeout) && parsedTimeout > 0 ?
 export const SENSOR_FIELDS = ["mq135", "nh3_mics", "co", "no2", "nh3_mems", "h2s"] as const;
 export const SENSOR_LIMIT_MIN = 1;
 export const SENSOR_LIMIT_MAX = 1000;
+const DEVICE_ID_MAX_LENGTH = 64;
+const SAFE_DEVICE_ID_PATTERN = /^[a-zA-Z0-9_.:-]+$/;
+
+function sanitizeApiBaseUrl(value: unknown): string {
+  const raw = typeof value === "string" ? value.trim() : "";
+  const fallback = window.location.origin;
+
+  if (!raw) {
+    return fallback;
+  }
+
+  try {
+    const url = new URL(raw, window.location.origin);
+    const isHttp = url.protocol === "http:";
+    const isHttps = url.protocol === "https:";
+    const isLoopback = ["localhost", "127.0.0.1", "::1"].includes(url.hostname);
+
+    if (!isHttps && !(import.meta.env.DEV && isHttp && isLoopback)) {
+      return fallback;
+    }
+
+    return url.origin.replace(/\/+$/, "");
+  } catch {
+    return fallback;
+  }
+}
 
 export type SensorField = (typeof SENSOR_FIELDS)[number];
 
@@ -77,7 +105,8 @@ function toSafeDeviceId(value: unknown): string {
     return "";
   }
 
-  return value.trim();
+  const trimmed = value.trim().slice(0, DEVICE_ID_MAX_LENGTH);
+  return SAFE_DEVICE_ID_PATTERN.test(trimmed) ? trimmed : "";
 }
 
 function toSafeTimestamp(value: unknown): { createdAt: string | null; timestampMs: number | null } {

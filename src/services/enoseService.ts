@@ -1,4 +1,36 @@
-const API_BASE = (import.meta.env.VITE_API_BASE ?? "/api/v1").replace(/\/+$/, "");
+const DEFAULT_API_BASE = "/api/v1";
+const DEVICE_ID_MAX_LENGTH = 64;
+const SAFE_DEVICE_ID_PATTERN = /^[a-zA-Z0-9_.:-]+$/;
+const SAFE_SENSOR_PATTERN = /^[a-zA-Z0-9_-]+$/;
+
+function sanitizeApiBase(value: unknown): string {
+  const raw = typeof value === "string" ? value.trim() : "";
+
+  if (!raw) {
+    return DEFAULT_API_BASE;
+  }
+
+  if (raw.startsWith("/")) {
+    return raw.replace(/\/+$/, "") || DEFAULT_API_BASE;
+  }
+
+  try {
+    const url = new URL(raw);
+    const isHttp = url.protocol === "http:";
+    const isHttps = url.protocol === "https:";
+    const isLoopback = ["localhost", "127.0.0.1", "::1"].includes(url.hostname);
+
+    if (!isHttps && !(import.meta.env.DEV && isHttp && isLoopback)) {
+      return DEFAULT_API_BASE;
+    }
+
+    return url.toString().replace(/\/+$/, "");
+  } catch {
+    return DEFAULT_API_BASE;
+  }
+}
+
+const API_BASE = sanitizeApiBase(import.meta.env.VITE_API_BASE);
 
 const parsedTimeout = Number.parseInt(import.meta.env.VITE_API_TIMEOUT_MS ?? "10000", 10);
 const REQUEST_TIMEOUT_MS = Number.isFinite(parsedTimeout) && parsedTimeout > 0 ? parsedTimeout : 10000;
@@ -134,7 +166,13 @@ function toInteger(value: unknown): number | null {
 }
 
 function sanitizeDeviceId(deviceId: unknown): string {
-  return toStringValue(deviceId);
+  const trimmed = toStringValue(deviceId).slice(0, DEVICE_ID_MAX_LENGTH);
+  return SAFE_DEVICE_ID_PATTERN.test(trimmed) ? trimmed : "";
+}
+
+function sanitizeSensorName(sensor: unknown): string {
+  const trimmed = toStringValue(sensor);
+  return SAFE_SENSOR_PATTERN.test(trimmed) ? trimmed : "";
 }
 
 function normalizeLatestItem(row: unknown): SensorLatestItem | null {
@@ -326,7 +364,7 @@ export async function fetchLatestSensor(
   deviceId = "",
   signal?: AbortSignal
 ): Promise<SensorLatestItem> {
-  const safeSensor = toStringValue(sensor);
+  const safeSensor = sanitizeSensorName(sensor);
   if (!safeSensor) {
     throw new Error("Sensor wajib dipilih");
   }
@@ -364,7 +402,7 @@ export async function fetchLatestAllSensors(
   const payload = await fetchJson(
     buildUrl("/sensors/latest", {
       device_id: sanitizeDeviceId(params.deviceId ?? ""),
-      sensor: toStringValue(params.sensor)
+      sensor: sanitizeSensorName(params.sensor)
     }),
     {
       method: "GET",
@@ -482,7 +520,7 @@ export async function convertAdc(payload: ConvertAdcPayload, signal?: AbortSigna
   const response = await fetchJson(buildUrl("/sensors/convert"), {
     method: "POST",
     body: JSON.stringify({
-      sensor: toStringValue(payload.sensor),
+      sensor: sanitizeSensorName(payload.sensor),
       adc: toInteger(payload.adc),
       device_id: sanitizeDeviceId(payload.device_id ?? ""),
       temperature_c: toNumber(payload.temperature_c),
@@ -509,7 +547,7 @@ export async function convertAdc(payload: ConvertAdcPayload, signal?: AbortSigna
 }
 
 export async function fetchCalibration(sensor: string, deviceId = "", signal?: AbortSignal): Promise<CalibrationPayload> {
-  const safeSensor = toStringValue(sensor);
+  const safeSensor = sanitizeSensorName(sensor);
   if (!safeSensor) {
     throw new Error("Sensor wajib dipilih");
   }
@@ -545,7 +583,7 @@ export async function upsertCalibration(
   payload: CalibrationUpsertInput,
   signal?: AbortSignal
 ): Promise<CalibrationPayload> {
-  const safeSensor = toStringValue(sensor);
+  const safeSensor = sanitizeSensorName(sensor);
   if (!safeSensor) {
     throw new Error("Sensor wajib dipilih");
   }
