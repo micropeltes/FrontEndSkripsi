@@ -1,18 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { ClockRefreshIcon } from "@untitledui/icons-react/outline";
 import SensorChart from "@/components/charts/SensorChart";
-import { useSensorData } from "@/composables/useSensorData";
+import { useSensorWebSocket } from "@/composables/useSensorWebSocket";
 import {
   flattenSensorItems,
   getApiHealth,
-  getLatestSensors,
   getMqttHealth,
-  getSensorHistory,
   sanitizeDeviceId,
   sanitizeLimit,
   SENSOR_LIMIT_MAX,
-  SENSOR_LIMIT_MIN,
-  validateHistoryTimeRange
+  SENSOR_LIMIT_MIN
 } from "@/services/sensorService";
 import { sanitizeMovingAverageWindow } from "@/utils/movingAverage";
 import { getHazardEventFromRows } from "@/utils/hazardEvents";
@@ -22,9 +19,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 
 const DEFAULT_LIMIT = 1000;
-const DEFAULT_DEVICE_ID = "esp32c3-01";
+const DEFAULT_DEVICE_ID = "";
 const DEFAULT_MOVING_AVERAGE_WINDOW = 5;
-const POLL_INTERVAL_MS = 5000;
+const TABLE_PAGE_SIZE = 50;
 
 const SENSOR_CHARTS = [
   { key: "mq135", title: "MQ135", color: "#ffd23f" },
@@ -59,8 +56,6 @@ function formatLastSync(value) {
 }
 
 export default function SensorDashboard({ fluid = false }) {
-  const [pageVisible, setPageVisible] = useState(!document.hidden);
-  const [pollingPaused, setPollingPaused] = useState(false);
   const [movingAverageEnabled, setMovingAverageEnabled] = useState(true);
   const [movingAverageWindow, setMovingAverageWindow] = useState(DEFAULT_MOVING_AVERAGE_WINDOW);
   const [movingAverageInput, setMovingAverageInput] = useState(String(DEFAULT_MOVING_AVERAGE_WINDOW));
@@ -69,44 +64,25 @@ export default function SensorDashboard({ fluid = false }) {
     count,
     items,
     loading,
-    refreshing,
     error,
     empty,
     query,
     lastSyncedAt,
+    rawItems,
+    health: wsHealth,
     setQuery,
-    refresh
-  } = useSensorData({
+    reconnect
+  } = useSensorWebSocket({
     initialLimit: DEFAULT_LIMIT,
-    initialDeviceId: DEFAULT_DEVICE_ID,
-    pollIntervalMs: POLL_INTERVAL_MS,
-    paused: pollingPaused || !pageVisible
+    initialDeviceId: DEFAULT_DEVICE_ID
   });
 
-  const today = new Date().toISOString().slice(0, 10);
   const [limitInput, setLimitInput] = useState(String(query.limit));
-  const [deviceInput, setDeviceInput] = useState(query.deviceId || DEFAULT_DEVICE_ID);
-  const [startTimeInput, setStartTimeInput] = useState(`${today}T00:00`);
-  const [endTimeInput, setEndTimeInput] = useState(`${today}T23:59`);
+  const [deviceInput, setDeviceInput] = useState(query.deviceId);
   const [loadingHealth, setLoadingHealth] = useState(false);
-  const [loadingSensors, setLoadingSensors] = useState(false);
   const [apiHealth, setApiHealth] = useState("checking");
   const [mqttHealth, setMqttHealth] = useState("checking");
-  const [sensorError, setSensorError] = useState("");
-  const [tableRows, setTableRows] = useState([]);
-
-  useEffect(() => {
-    const onVisibilityChange = () => {
-      const visible = !document.hidden;
-      setPageVisible(visible);
-      if (visible) {
-        refresh({ silent: true });
-      }
-    };
-
-    document.addEventListener("visibilitychange", onVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", onVisibilityChange);
-  }, [refresh]);
+  const [tablePage, setTablePage] = useState(0);
 
   useEffect(() => {
     setLimitInput(String(query.limit));
@@ -119,16 +95,41 @@ export default function SensorDashboard({ fluid = false }) {
   );
 
   const hazardEvent = useMemo(() => getHazardEventFromRows(items), [items]);
+  const tableRows = useMemo(() => flattenSensorItems(rawItems), [rawItems]);
+  const latestTableRows = useMemo(
+    () => [...tableRows].sort((left, right) => {
+      const leftTime = left.created_at ? Date.parse(left.created_at) : Number.NEGATIVE_INFINITY;
+      const rightTime = right.created_at ? Date.parse(right.created_at) : Number.NEGATIVE_INFINITY;
+      return rightTime - leftTime;
+    }),
+    [tableRows]
+  );
+  const tablePageCount = Math.max(1, Math.ceil(latestTableRows.length / TABLE_PAGE_SIZE));
+  const safeTablePage = Math.min(tablePage, tablePageCount - 1);
+  const visibleTableRows = latestTableRows.slice(
+    safeTablePage * TABLE_PAGE_SIZE,
+    safeTablePage * TABLE_PAGE_SIZE + TABLE_PAGE_SIZE
+  );
+  const tableStart = latestTableRows.length === 0 ? 0 : safeTablePage * TABLE_PAGE_SIZE + 1;
+  const tableEnd = safeTablePage * TABLE_PAGE_SIZE + visibleTableRows.length;
 
-  const toIsoFromInput = (value) => (value ? new Date(value).toISOString() : "");
+  useEffect(() => {
+    setTablePage(0);
+  }, [rawItems]);
+
+  useEffect(() => {
+    if (tablePage !== safeTablePage) {
+      setTablePage(safeTablePage);
+    }
+  }, [safeTablePage, tablePage]);
 
   const refreshHealth = async () => {
     setLoadingHealth(true);
     const [apiResult, mqttResult] = await Promise.allSettled([getApiHealth(), getMqttHealth()]);
     setApiHealth(apiResult.status === "fulfilled" ? "online" : "offline");
     if (mqttResult.status === "fulfilled") {
-      const mqttStatus = String(mqttResult.value.status || "connected").toLowerCase();
-      setMqttHealth(mqttStatus.includes("ok") || mqttStatus.includes("connect") || mqttStatus === "healthy" ? "connected" : "unhealthy");
+      const mqttStatus = String(mqttResult.value.status || "unknown").toLowerCase();
+      setMqttHealth(mqttStatus === "connected" || mqttStatus === "ok" || mqttStatus === "healthy" ? "connected" : "unhealthy");
     } else {
       setMqttHealth("disconnected");
     }
@@ -137,48 +138,7 @@ export default function SensorDashboard({ fluid = false }) {
 
   useEffect(() => {
     refreshHealth();
-    const timer = setInterval(refreshHealth, 10000);
-    return () => clearInterval(timer);
   }, []);
-
-  const loadLatest = async () => {
-    const nextLimit = sanitizeLimit(limitInput, query.limit);
-    const nextDeviceId = sanitizeDeviceId(deviceInput);
-    setLoadingSensors(true);
-    setSensorError("");
-    try {
-      const result = await getLatestSensors({ limit: nextLimit, device_id: nextDeviceId });
-      setTableRows(flattenSensorItems(result.raw_items ?? []));
-      setQuery({ limit: nextLimit, deviceId: nextDeviceId });
-    } catch (error) {
-      setSensorError(error instanceof Error ? error.message : "Gagal memuat data latest sensor.");
-    } finally {
-      setLoadingSensors(false);
-    }
-  };
-
-  const loadHistory = async () => {
-    const nextLimit = sanitizeLimit(limitInput, query.limit);
-    const nextDeviceId = sanitizeDeviceId(deviceInput);
-    const start_time = toIsoFromInput(startTimeInput);
-    const end_time = toIsoFromInput(endTimeInput);
-    const validationError = validateHistoryTimeRange(start_time, end_time);
-    if (validationError) {
-      setSensorError(validationError);
-      return;
-    }
-
-    setLoadingSensors(true);
-    setSensorError("");
-    try {
-      const result = await getSensorHistory({ device_id: nextDeviceId, start_time, end_time, limit: nextLimit });
-      setTableRows(flattenSensorItems(result.raw_items ?? []));
-    } catch (error) {
-      setSensorError(error instanceof Error ? error.message : "Gagal memuat history sensor.");
-    } finally {
-      setLoadingSensors(false);
-    }
-  };
 
   const applyFilters = () => {
     const nextLimit = sanitizeLimit(limitInput, query.limit);
@@ -207,17 +167,14 @@ export default function SensorDashboard({ fluid = false }) {
             <Badge variant="outline" className="mb-2">E-Nose</Badge>
             <h1>Dashboard Visualisasi Sensor Realtime</h1>
             <p className="subtitle">
-              Endpoint: <code>/api/v1/sensors/latest/{query.limit}</code> dengan polling otomatis setiap 5 detik.
+              Stream realtime dari <code>/api/v1/ws/sensors/latest</code>.
             </p>
           </div>
 
           <div className="actions">
-            <Button type="button" variant="secondary" onClick={() => refresh({ silent: true })}>
+            <Button type="button" variant="secondary" onClick={reconnect}>
               <ClockRefreshIcon className="ui-icon" />
-              <span>{refreshing ? "Refreshing..." : "Refresh"}</span>
-            </Button>
-            <Button type="button" variant="outline" onClick={() => setPollingPaused((prev) => !prev)}>
-              {pollingPaused ? "Lanjutkan Polling" : "Jeda Polling"}
+              <span>Reconnect</span>
             </Button>
           </div>
         </header>
@@ -257,8 +214,34 @@ export default function SensorDashboard({ fluid = false }) {
           </Card>
           <Card className="card">
             <CardHeader>
-              <CardDescription>Last Sync (Asia/Jakarta)</CardDescription>
+              <CardDescription>Last Data (Asia/Jakarta)</CardDescription>
               <CardTitle className="value small">{formatLastSync(lastSyncedAt)}</CardTitle>
+            </CardHeader>
+          </Card>
+          <Card className="card">
+            <CardHeader>
+              <CardDescription>WebSocket</CardDescription>
+              <CardTitle className={`value status-${wsHealth.status === "connected" ? "normal" : wsHealth.status === "reconnecting" || wsHealth.status === "connecting" ? "warning" : "danger"}`}>
+                {wsHealth.status === "connected" ? "Connected" : wsHealth.status === "connecting" ? "Connecting" : wsHealth.status === "reconnecting" ? "Reconnecting" : wsHealth.status === "error" ? "Error" : "Disconnected"}
+              </CardTitle>
+            </CardHeader>
+          </Card>
+          <Card className="card">
+            <CardHeader>
+              <CardDescription>Last Message (Asia/Jakarta)</CardDescription>
+              <CardTitle className="value small">{formatLastSync(wsHealth.lastMessageAt)}</CardTitle>
+            </CardHeader>
+          </Card>
+          <Card className="card">
+            <CardHeader>
+              <CardDescription>Reconnect Attempt</CardDescription>
+              <CardTitle className="value">{wsHealth.reconnectAttempt}</CardTitle>
+            </CardHeader>
+          </Card>
+          <Card className="card">
+            <CardHeader>
+              <CardDescription>Latency</CardDescription>
+              <CardTitle className="value small">{wsHealth.latencyMs === null ? "--" : `${wsHealth.latencyMs} ms`}</CardTitle>
             </CardHeader>
           </Card>
           <Card className="card">
@@ -279,7 +262,7 @@ export default function SensorDashboard({ fluid = false }) {
           <CardHeader>
             <CardTitle>Filter Data</CardTitle>
             <CardDescription>
-              `limit` valid {SENSOR_LIMIT_MIN}..{SENSOR_LIMIT_MAX}, `device_id` default {DEFAULT_DEVICE_ID}, history wajib memakai start_time dan end_time.
+              `limit` valid {SENSOR_LIMIT_MIN}..{SENSOR_LIMIT_MAX}, kosongkan `device_id` untuk semua device.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -302,18 +285,8 @@ export default function SensorDashboard({ fluid = false }) {
                   value={deviceInput}
                   onChange={(event) => setDeviceInput(event.target.value)}
                   onKeyDown={applyFiltersOnEnter}
-                  placeholder={DEFAULT_DEVICE_ID}
+                  placeholder="Semua Device"
                 />
-              </label>
-
-              <label className="sensor-input-wrap">
-                <span className="field-label">Start Time</span>
-                <Input type="datetime-local" value={startTimeInput} onChange={(event) => setStartTimeInput(event.target.value)} />
-              </label>
-
-              <label className="sensor-input-wrap">
-                <span className="field-label">End Time</span>
-                <Input type="datetime-local" value={endTimeInput} onChange={(event) => setEndTimeInput(event.target.value)} />
               </label>
 
               <label className="sensor-input-wrap">
@@ -330,8 +303,6 @@ export default function SensorDashboard({ fluid = false }) {
             </div>
 
             <div className="sensor-filter-actions">
-              <Button type="button" onClick={loadLatest} disabled={loadingSensors}>Load Latest</Button>
-              <Button type="button" variant="secondary" onClick={loadHistory} disabled={loadingSensors}>Load History</Button>
               <Button type="button" variant="outline" onClick={refreshHealth} disabled={loadingHealth}>{loadingHealth ? "Checking..." : "Refresh Health"}</Button>
               <Button type="button" variant="outline" onClick={applyFilters}>Terapkan Filter Chart</Button>
               <label className="ma-toggle">
@@ -346,11 +317,11 @@ export default function SensorDashboard({ fluid = false }) {
           </CardContent>
         </Card>
 
-        {(loading || loadingSensors) && <p className="info">Memuat data sensor...</p>}
-        {(error || sensorError) && (
+        {loading && <p className="info">Menunggu data sensor realtime...</p>}
+        {error && (
           <Card className="panel">
             <CardContent>
-              <p className="error">{sensorError || error}</p>
+              <p className="error">{error}</p>
             </CardContent>
           </Card>
         )}
@@ -361,33 +332,6 @@ export default function SensorDashboard({ fluid = false }) {
             </CardContent>
           </Card>
         )}
-
-        <Card className="panel">
-          <CardHeader>
-            <CardTitle>Tabel Data Sensor</CardTitle>
-            <CardDescription>Data latest/history diflatten dari object sensors yang dinamis.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {tableRows.length === 0 ? (
-              <p className="sensor-empty">Belum ada data tabel. Klik Load Latest atau Load History.</p>
-            ) : (
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr><th>created_at</th><th>device_id</th><th>nama sensor</th><th>adc</th><th>voltage</th><th>ppm</th><th>unit</th></tr>
-                  </thead>
-                  <tbody>
-                    {tableRows.map((row, index) => (
-                      <tr key={`${row.created_at}-${row.device_id}-${row.sensor_name}-${index}`}>
-                        <td>{row.created_at || "-"}</td><td>{row.device_id || "-"}</td><td>{row.sensor_name}</td><td>{row.adc ?? "-"}</td><td>{row.voltage ?? "-"}</td><td>{row.ppm ?? "-"}</td><td>{row.unit || "-"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
 
         {!loading && !error && !empty && (
           <section className="sensor-dashboard-grid">
@@ -404,6 +348,57 @@ export default function SensorDashboard({ fluid = false }) {
             ))}
           </section>
         )}
+
+        <Card className="panel">
+          <CardHeader>
+            <CardTitle>Tabel Data Sensor</CardTitle>
+            <CardDescription>Menampilkan {tableStart}-{tableEnd} dari {latestTableRows.length} baris terbaru.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {latestTableRows.length === 0 ? (
+              <p className="sensor-empty">Belum ada data tabel dari stream WebSocket.</p>
+            ) : (
+              <>
+                <div className="table-wrap">
+                  <table>
+                    <thead>
+                      <tr><th>created_at</th><th>device_id</th><th>nama sensor</th><th>adc</th><th>voltage</th><th>ppm</th><th>unit</th></tr>
+                    </thead>
+                    <tbody>
+                      {visibleTableRows.map((row, index) => (
+                        <tr key={`${row.created_at}-${row.device_id}-${row.sensor_name}-${safeTablePage}-${index}`}>
+                          <td>{row.created_at || "-"}</td><td>{row.device_id || "-"}</td><td>{row.sensor_name}</td><td>{row.adc ?? "-"}</td><td>{row.voltage ?? "-"}</td><td>{row.ppm ?? "-"}</td><td>{row.unit || "-"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="history-table-footer">
+                  <span>Page {safeTablePage + 1} / {tablePageCount}</span>
+                  <div className="table-pagination-actions">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={safeTablePage === 0}
+                      onClick={() => setTablePage((current) => Math.max(current - 1, 0))}
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={safeTablePage >= tablePageCount - 1}
+                      onClick={() => setTablePage((current) => Math.min(current + 1, tablePageCount - 1))}
+                    >
+                      Next Page
+                    </Button>
+                  </div>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
       </section>
     </main>
   );

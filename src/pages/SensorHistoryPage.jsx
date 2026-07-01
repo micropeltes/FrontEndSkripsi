@@ -12,9 +12,9 @@ import {
   sanitizeHistoryLimit
 } from "@/services/enoseService";
 
-const POLL_INTERVAL_MS = 4000;
-const LIMIT_OPTIONS = [10, 50, 100];
+const LIMIT_OPTIONS = [10, 50, 100, 500, 1000];
 const HISTORY_KEYS = ["mq135", "nh3_mics", "co", "no2", "nh3_mems", "h2s"];
+const HISTORY_PAGE_SIZE = 50;
 
 const dateTimeFormatter = new Intl.DateTimeFormat("id-ID", {
   timeZone: "Asia/Jakarta",
@@ -64,6 +64,7 @@ export default function SensorHistoryPage({ fluid = false }) {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
   const [lastSyncedAt, setLastSyncedAt] = useState("");
+  const [visibleHistoryCount, setVisibleHistoryCount] = useState(HISTORY_PAGE_SIZE);
 
   useEffect(() => {
     let mounted = true;
@@ -104,6 +105,7 @@ export default function SensorHistoryPage({ fluid = false }) {
         const payload = await fetchSensorHistory({ limit, deviceId });
         setItems(payload.items);
         setCount(payload.count);
+        setVisibleHistoryCount(HISTORY_PAGE_SIZE);
         setLastSyncedAt(new Date().toISOString());
         setError("");
       } catch (nextError) {
@@ -120,18 +122,32 @@ export default function SensorHistoryPage({ fluid = false }) {
     refreshHistory(false);
   }, [refreshHistory]);
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      refreshHistory(true);
-    }, POLL_INTERVAL_MS);
-
-    return () => clearInterval(timer);
-  }, [refreshHistory]);
-
   const activeSensors = useMemo(() => {
     const supported = supportedSensors.filter((sensor) => HISTORY_KEYS.includes(sensor));
     return supported.length > 0 ? supported : HISTORY_KEYS;
   }, [supportedSensors]);
+
+  const historyRows = useMemo(
+    () => items.flatMap((row, rowIndex) => activeSensors.map((sensor) => ({
+      key: `${row.id ?? rowIndex}-${row.created_at ?? "no-time"}-${sensor}`,
+      timestamp: row.created_at,
+      deviceId: row.device_id,
+      sensor,
+      ppm: row[sensor]
+    }))),
+    [activeSensors, items]
+  );
+
+  const visibleHistoryRows = useMemo(
+    () => historyRows.slice(0, visibleHistoryCount),
+    [historyRows, visibleHistoryCount]
+  );
+
+  const hiddenHistoryRows = Math.max(historyRows.length - visibleHistoryRows.length, 0);
+
+  useEffect(() => {
+    setVisibleHistoryCount(HISTORY_PAGE_SIZE);
+  }, [activeSensors]);
 
   const exportCsv = () => {
     if (items.length === 0) {
@@ -161,12 +177,12 @@ export default function SensorHistoryPage({ fluid = false }) {
       <section className="container">
         <header className="dashboard-hero">
           <div>
-            <Badge variant="outline" className="mb-2">History Chart</Badge>
-            <h1>Riwayat Sensor Realtime</h1>
-            <p className="subtitle">Line chart multi-sensor dengan update otomatis dan export CSV.</p>
+            <Badge variant="outline" className="mb-2">History</Badge>
+            <h1>Riwayat Sensor</h1>
+            <p className="subtitle">Endpoint lama <code>/api/v1/sensors/latest/{limit}</code> dengan refresh manual dan export CSV.</p>
           </div>
           <div className="actions">
-            <Button type="button" variant="secondary" onClick={() => refreshHistory(true)}>
+            <Button type="button" variant="secondary" onClick={() => refreshHistory(false)}>
               <ClockRefreshIcon className="ui-icon" />
               <span>{refreshing ? "Refreshing..." : "Refresh"}</span>
             </Button>
@@ -207,7 +223,7 @@ export default function SensorHistoryPage({ fluid = false }) {
         <Card className="panel">
           <CardHeader>
             <CardTitle>Filter History</CardTitle>
-            <CardDescription>Pilih limit data 10 / 50 / 100 dan device ID opsional.</CardDescription>
+            <CardDescription>Pilih limit data dan device ID opsional, lalu refresh manual.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="sensor-control-row">
@@ -247,13 +263,63 @@ export default function SensorHistoryPage({ fluid = false }) {
 
         <Card className="panel clean-chart-shell">
           <CardHeader>
-            <CardTitle>Realtime Line Chart</CardTitle>
-            <CardDescription>Rendering dinamis berdasarkan daftar sensor supported.</CardDescription>
+            <CardTitle>Grafik History Sensor</CardTitle>
+            <CardDescription>Rendering dinamis berdasarkan daftar sensor supported dari data history.</CardDescription>
           </CardHeader>
           <CardContent>
             {loading && <p className="info">Memuat history sensor...</p>}
             {!loading && error && <p className="error">{error}</p>}
             {!loading && !error && <SensorHistoryChart rows={items} sensors={activeSensors} />}
+          </CardContent>
+        </Card>
+
+        <Card className="panel">
+          <CardHeader>
+            <CardTitle>Tabel History</CardTitle>
+            <CardDescription>Menampilkan {visibleHistoryRows.length} dari {historyRows.length} baris sensor. Timestamp dalam zona waktu Asia/Jakarta (GMT+7).</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {historyRows.length === 0 ? (
+              <p className="sensor-empty">Belum ada data history.</p>
+            ) : (
+              <>
+                <div className="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>timestamp GMT+7</th>
+                        <th>device_id</th>
+                        <th>sensor</th>
+                        <th>ppm</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {visibleHistoryRows.map((row) => (
+                        <tr key={row.key}>
+                          <td>{formatTime(row.timestamp)}</td>
+                          <td>{row.deviceId || "-"}</td>
+                          <td>{row.sensor}</td>
+                          <td>{row.ppm ?? "-"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="history-table-footer">
+                  <span>{hiddenHistoryRows > 0 ? `${hiddenHistoryRows} baris belum ditampilkan` : "Semua baris sudah ditampilkan"}</span>
+                  {hiddenHistoryRows > 0 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setVisibleHistoryCount((current) => current + HISTORY_PAGE_SIZE)}
+                    >
+                      View More
+                    </Button>
+                  )}
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
       </section>

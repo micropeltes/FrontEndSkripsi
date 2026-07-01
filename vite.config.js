@@ -12,15 +12,17 @@ export default defineConfig({
     }
   },
   server: {
-    port: 5173,
+    port: 3000,
     proxy: {
       "/health": {
         target: devApiTarget,
-        changeOrigin: true
+        changeOrigin: true,
+        ws: true
       },
       "/api": {
         target: devApiTarget,
-        changeOrigin: true
+        changeOrigin: true,
+        ws: true
       }
     }
   }

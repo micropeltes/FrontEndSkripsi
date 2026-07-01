@@ -253,6 +253,48 @@ pre,
   }
 }
 
+@keyframes warningHeartbeat {
+  0%,
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 0 rgba(239, 68, 68, 0));
+  }
+  14% {
+    transform: scale(1.018);
+    filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.5));
+  }
+  28% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 0 rgba(239, 68, 68, 0));
+  }
+  42% {
+    transform: scale(1.012);
+    filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.45));
+  }
+  70% {
+    transform: scale(1);
+  }
+}
+
+@keyframes warningBorderHeartbeat {
+  0%,
+  100% {
+    box-shadow: 0 0 0 rgba(239, 68, 68, 0), var(--shadow-1);
+  }
+  16% {
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.28), 0 0 24px rgba(239, 68, 68, 0.32), var(--shadow-1);
+  }
+  32% {
+    box-shadow: 0 0 0 rgba(239, 68, 68, 0), var(--shadow-1);
+  }
+  48% {
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.22), 0 0 20px rgba(245, 158, 11, 0.28), var(--shadow-1);
+  }
+  72% {
+    box-shadow: 0 0 0 rgba(239, 68, 68, 0), var(--shadow-1);
+  }
+}
+
 @media (max-width: 768px) {
   .pcb-bg {
     --pcb-trace-opacity: 0.2;
@@ -266,7 +308,19 @@ pre,
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pcb-bg::after {
+  .pcb-bg::after,
+  .backend-indicator.offline,
+  .backend-indicator.checking,
+  .status-warning,
+  .status-danger,
+  .error,
+  .error::before,
+  .sensor-card.status-warning,
+  .sensor-card.status-danger,
+  .toast-item.is-error,
+  .hazard-event,
+  .command-status-card.status-warning,
+  .command-status-card.status-danger {
     animation: none;
   }
 }
@@ -407,11 +461,13 @@ pre,
 .backend-indicator.offline {
   border-color: rgba(239, 68, 68, 0.6);
   color: #ef4444;
+  animation: warningHeartbeat 1.35s ease-in-out infinite;
 }
 
 .backend-indicator.checking {
   border-color: rgba(234, 179, 8, 0.7);
   color: #f59e0b;
+  animation: warningHeartbeat 1.8s ease-in-out infinite;
 }
 
 .nav-link:hover,
@@ -680,10 +736,14 @@ pre,
 
 .status-warning {
   color: #d97706;
+  animation: warningHeartbeat 1.7s ease-in-out infinite;
+  transform-origin: left center;
 }
 
 .status-danger {
   color: #dc2626;
+  animation: warningHeartbeat 1.25s ease-in-out infinite;
+  transform-origin: left center;
 }
 
 .status-unknown {
@@ -869,6 +929,34 @@ pre,
 .error {
   margin-top: 12px;
   color: var(--error-color);
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 10px 12px;
+  border: 1px solid rgba(239, 68, 68, 0.62);
+  border-radius: 2px 14px 2px 14px;
+  clip-path: var(--eva-cut-sm);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.18), rgba(255, 210, 63, 0.08));
+  box-shadow: 0 0 18px rgba(239, 68, 68, 0.16);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+  animation: warningBorderHeartbeat 1.45s ease-in-out infinite;
+}
+
+.error::before {
+  content: "!";
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-size: 0.78rem;
+  line-height: 1;
+  animation: warningHeartbeat 1.2s ease-in-out infinite;
 }
 
 .error.compact {
@@ -987,10 +1075,18 @@ pre,
 
 .sensor-card.status-warning {
   border-color: rgba(245, 158, 11, 0.55);
+  animation: warningBorderHeartbeat 1.8s ease-in-out infinite;
 }
 
 .sensor-card.status-danger {
   border-color: rgba(239, 68, 68, 0.55);
+  animation: warningBorderHeartbeat 1.25s ease-in-out infinite;
+}
+
+.hazard-event,
+.command-status-card.status-warning,
+.command-status-card.status-danger {
+  animation: warningBorderHeartbeat 1.45s ease-in-out infinite;
 }
 
 .sensor-card.status-unknown {
@@ -1072,6 +1168,8 @@ pre,
 
 .toast-item.is-error {
   border-color: rgba(239, 68, 68, 0.5);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), var(--surface-soft));
+  animation: warningBorderHeartbeat 1.35s ease-in-out infinite;
 }
 
 .toast-title {
@@ -1159,6 +1257,24 @@ pre,
 .table-wrap {
   width: 100%;
   overflow-x: auto;
+}
+
+.history-table-footer {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted-text);
+  font-size: 0.9rem;
+}
+
+.table-pagination-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
 }
 
 table {

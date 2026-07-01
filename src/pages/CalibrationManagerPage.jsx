@@ -12,7 +12,7 @@ import {
   upsertCalibration
 } from "@/services/enoseService";
 
-const RATIO_MODE_OPTIONS = ["clean_air", "manual", "dynamic"];
+const RATIO_MODE_OPTIONS = ["rs_r0", "r0_rs"];
 
 function formatSensor(sensor) {
   return sensor.replaceAll("_", " ").toUpperCase();
@@ -35,7 +35,7 @@ export default function CalibrationManagerPage({ fluid = false }) {
   const [r0, setR0] = useState("10000");
   const [rlOhm, setRlOhm] = useState("10000");
   const [vcc, setVcc] = useState("5.0");
-  const [ratioMode, setRatioMode] = useState("clean_air");
+  const [ratioMode, setRatioMode] = useState("rs_r0");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -92,7 +92,7 @@ export default function CalibrationManagerPage({ fluid = false }) {
       setR0(String(payload.r0 ?? ""));
       setRlOhm(String(payload.rl_ohm ?? ""));
       setVcc(String(payload.vcc ?? ""));
-      setRatioMode(payload.ratio_mode || "clean_air");
+      setRatioMode(payload.ratio_mode || "rs_r0");
       if (payload.device_id) {
         setDeviceInput(payload.device_id);
         setDeviceId(payload.device_id);
