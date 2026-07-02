@@ -65,6 +65,7 @@ export default function SensorHistoryPage({ fluid = false }) {
   const [error, setError] = useState("");
   const [lastSyncedAt, setLastSyncedAt] = useState("");
   const [visibleHistoryCount, setVisibleHistoryCount] = useState(HISTORY_PAGE_SIZE);
+  const [showNh3Mics, setShowNh3Mics] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -124,8 +125,9 @@ export default function SensorHistoryPage({ fluid = false }) {
 
   const activeSensors = useMemo(() => {
     const supported = supportedSensors.filter((sensor) => HISTORY_KEYS.includes(sensor));
-    return supported.length > 0 ? supported : HISTORY_KEYS;
-  }, [supportedSensors]);
+    const baseSensors = supported.length > 0 ? supported : HISTORY_KEYS;
+    return baseSensors.filter((sensor) => showNh3Mics || sensor !== "nh3_mics");
+  }, [showNh3Mics, supportedSensors]);
 
   const historyRows = useMemo(
     () => items.flatMap((row, rowIndex) => activeSensors.map((sensor) => ({
@@ -257,6 +259,15 @@ export default function SensorHistoryPage({ fluid = false }) {
               <Button type="button" className="monitor-apply-btn" onClick={() => setDeviceId(deviceInput.trim())}>
                 Terapkan Device
               </Button>
+
+              <label className="ma-toggle">
+                <input
+                  type="checkbox"
+                  checked={showNh3Mics}
+                  onChange={(event) => setShowNh3Mics(event.target.checked)}
+                />
+                <span>Tampilkan NH3 MICS</span>
+              </label>
             </div>
           </CardContent>
         </Card>

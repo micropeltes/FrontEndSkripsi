@@ -1,3 +1,5 @@
+import { extractResponseItems, getBestTimestampMs } from "@/utils/chartData";
+
 const DEFAULT_API_BASE_URL = import.meta.env.DEV ? "http://127.0.0.1:8000" : window.location.origin;
 
 export const API_BASE_URL = sanitizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL ?? DEFAULT_API_BASE_URL);
@@ -42,6 +44,9 @@ export type SensorRow = {
   device_id: string;
   created_at: string | null;
   timestamp_ms: number | null;
+  payload_timestamp_ms: number | null;
+  received_timestamp_ms: number | null;
+  device_latency_ms: number | null;
 } & Record<SensorField, number | null>;
 
 export type LatestSensorsResponse = {
@@ -127,6 +132,29 @@ function toSafeTimestamp(value: unknown): { createdAt: string | null; timestampM
   return { createdAt, timestampMs };
 }
 
+function toIsoTimestamp(timestampMs: number | null): string | null {
+  if (!Number.isFinite(timestampMs)) {
+    return null;
+  }
+
+  return new Date(Number(timestampMs)).toISOString();
+}
+
+function calculateDeviceLatencyMs(raw: Record<string, unknown>): number | null {
+  const explicitLatency = toFiniteNumber(raw.device_latency_ms);
+  if (explicitLatency !== null) {
+    return Math.trunc(explicitLatency);
+  }
+
+  const payloadTimestampMs = toFiniteNumber(raw.payload_timestamp_ms);
+  const receivedTimestampMs = toFiniteNumber(raw.received_timestamp_ms);
+  if (payloadTimestampMs === null || receivedTimestampMs === null) {
+    return null;
+  }
+
+  return Math.trunc(receivedTimestampMs - payloadTimestampMs);
+}
+
 export function sanitizeLimit(limit: unknown, fallback = 50): number {
   const parsed = Number.parseInt(String(limit ?? fallback), 10);
   if (!Number.isFinite(parsed)) {
@@ -155,6 +183,8 @@ function normalizeSensorRow(row: unknown): SensorRow | null {
 
   const raw = row as Record<string, unknown>;
   const { createdAt, timestampMs } = toSafeTimestamp(raw.created_at);
+  const bestTimestampMs = getBestTimestampMs(raw);
+  const normalizedTimestampMs = Number.isFinite(bestTimestampMs) ? Number(bestTimestampMs) : timestampMs;
   const sensors =
     raw.sensors && typeof raw.sensors === "object" && !Array.isArray(raw.sensors)
       ? (raw.sensors as Record<string, unknown>)
@@ -172,8 +202,11 @@ function normalizeSensorRow(row: unknown): SensorRow | null {
   return {
     id: toSafeId(raw.id),
     device_id: toSafeDeviceId(raw.device_id),
-    created_at: createdAt,
-    timestamp_ms: timestampMs,
+    created_at: createdAt ?? toIsoTimestamp(normalizedTimestampMs),
+    timestamp_ms: normalizedTimestampMs,
+    payload_timestamp_ms: toFiniteNumber(raw.payload_timestamp_ms),
+    received_timestamp_ms: toFiniteNumber(raw.received_timestamp_ms),
+    device_latency_ms: calculateDeviceLatencyMs(raw),
     mq135: sensorPpm("mq135"),
     nh3_mics: sensorPpm("nh3_mics"),
     co: sensorPpm("co"),
@@ -183,15 +216,15 @@ function normalizeSensorRow(row: unknown): SensorRow | null {
   };
 }
 
-function normalizeLatestPayload(payload: unknown): LatestSensorsResponse {
+export function normalizeLatestPayload(payload: unknown): LatestSensorsResponse {
   const fallback: LatestSensorsResponse = { count: 0, items: [] };
 
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+  if (!payload || (typeof payload !== "object" && !Array.isArray(payload))) {
     return fallback;
   }
 
-  const raw = payload as Record<string, unknown>;
-  const rawItems = Array.isArray(raw.items) ? raw.items : [];
+  const raw = Array.isArray(payload) ? {} : payload as Record<string, unknown>;
+  const rawItems = extractResponseItems(payload);
   const items = rawItems.map(normalizeSensorRow).filter((row): row is SensorRow => Boolean(row));
   const sortedItems = sortAscendingByCreatedAt(items);
   const countValue = toSafeId(raw.count);

@@ -25,6 +25,7 @@ const TABLE_PAGE_SIZE = 50;
 
 const SENSOR_CHARTS = [
   { key: "mq135", title: "MQ135", color: "#ffd23f" },
+  { key: "nh3_mics", title: "NH3 MICS", color: "#1f57d6" },
   { key: "co", title: "CO", color: "#ff4b5f" },
   { key: "no2", title: "NO2", color: "#f76b35" },
   { key: "nh3_mems", title: "NH3 MEMS", color: "#34cfff" },
@@ -55,10 +56,20 @@ function formatLastSync(value) {
   return syncTimeFormatter.format(date);
 }
 
+// function formatLatencyMs(value) {
+//   const latencyMs = Number(value);
+//   if (!Number.isFinite(latencyMs)) {
+//     return "--";
+//   }
+//
+//   return `${Math.round(latencyMs)} ms`;
+// }
+
 export default function SensorDashboard({ fluid = false }) {
   const [movingAverageEnabled, setMovingAverageEnabled] = useState(true);
   const [movingAverageWindow, setMovingAverageWindow] = useState(DEFAULT_MOVING_AVERAGE_WINDOW);
   const [movingAverageInput, setMovingAverageInput] = useState(String(DEFAULT_MOVING_AVERAGE_WINDOW));
+  const [showNh3Mics, setShowNh3Mics] = useState(false);
 
   const {
     count,
@@ -95,7 +106,21 @@ export default function SensorDashboard({ fluid = false }) {
   );
 
   const hazardEvent = useMemo(() => getHazardEventFromRows(items), [items]);
+  // const latestDeviceLatencyMs = useMemo(() => {
+  //   for (let index = items.length - 1; index >= 0; index -= 1) {
+  //     const latencyMs = Number(items[index]?.device_latency_ms);
+  //     if (Number.isFinite(latencyMs)) {
+  //       return latencyMs;
+  //     }
+  //   }
+  //
+  //   return null;
+  // }, [items]);
   const tableRows = useMemo(() => flattenSensorItems(rawItems), [rawItems]);
+  const visibleSensorCharts = useMemo(
+    () => SENSOR_CHARTS.filter((sensor) => showNh3Mics || sensor.key !== "nh3_mics"),
+    [showNh3Mics]
+  );
   const latestTableRows = useMemo(
     () => [...tableRows].sort((left, right) => {
       const leftTime = left.created_at ? Date.parse(left.created_at) : Number.NEGATIVE_INFINITY;
@@ -238,12 +263,12 @@ export default function SensorDashboard({ fluid = false }) {
               <CardTitle className="value">{wsHealth.reconnectAttempt}</CardTitle>
             </CardHeader>
           </Card>
-          <Card className="card">
+          {/* <Card className="card">
             <CardHeader>
-              <CardDescription>Latency</CardDescription>
-              <CardTitle className="value small">{wsHealth.latencyMs === null ? "--" : `${wsHealth.latencyMs} ms`}</CardTitle>
+              <CardDescription>Latensi Device</CardDescription>
+              <CardTitle className="value small">{formatLatencyMs(latestDeviceLatencyMs)}</CardTitle>
             </CardHeader>
-          </Card>
+          </Card> */}
           <Card className="card">
             <CardHeader>
               <CardDescription>API Health</CardDescription>
@@ -313,6 +338,14 @@ export default function SensorDashboard({ fluid = false }) {
                 />
                 <span>Tampilkan Moving Average</span>
               </label>
+              <label className="ma-toggle">
+                <input
+                  type="checkbox"
+                  checked={showNh3Mics}
+                  onChange={(event) => setShowNh3Mics(event.target.checked)}
+                />
+                <span>Tampilkan NH3 MICS</span>
+              </label>
             </div>
           </CardContent>
         </Card>
@@ -335,7 +368,7 @@ export default function SensorDashboard({ fluid = false }) {
 
         {!loading && !error && !empty && (
           <section className="sensor-dashboard-grid">
-            {SENSOR_CHARTS.map((sensor) => (
+            {visibleSensorCharts.map((sensor) => (
               <SensorChart
                 key={sensor.key}
                 title={sensor.title}

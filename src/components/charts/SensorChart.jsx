@@ -2,6 +2,7 @@ import { memo, useEffect, useMemo, useRef, useState } from "react";
 import ApexCharts from "apexcharts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { computeMovingAverage } from "@/utils/movingAverage";
+import { prepareSensorChartPoints } from "@/utils/chartData";
 
 const JAKARTA_TIME_ZONE = "Asia/Jakarta";
 const JAKARTA_GMT_LABEL = "GMT+7";
@@ -106,12 +107,7 @@ function SensorChart({
   }, []);
 
   const { rawPoints, movingAveragePoints, latestRaw, latestMovingAverage } = useMemo(() => {
-    const pairs = rows
-      .map((row) => ({
-        x: Number(row.timestamp_ms),
-        y: row[sensorKey]
-      }))
-      .filter((point) => Number.isFinite(point.x));
+    const pairs = prepareSensorChartPoints(rows, sensorKey);
     const raw = pairs.map((point) => [point.x, point.y]);
     const maValues = computeMovingAverage(
       pairs.map((point) => point.y),

@@ -1,3 +1,5 @@
+import { extractResponseItems, getBestTimestampMs } from "@/utils/chartData";
+
 const DEFAULT_API_BASE = "/api/v1";
 const DEVICE_ID_MAX_LENGTH = 64;
 const SAFE_DEVICE_ID_PATTERN = /^[a-zA-Z0-9_.:-]+$/;
@@ -156,6 +158,15 @@ function toDatetime(value: unknown): string | null {
   return new Date(timestamp).toISOString();
 }
 
+function toDatetimeFromBestTimestamp(raw: Record<string, unknown>): string | null {
+  const timestampMs = getBestTimestampMs(raw);
+  if (!Number.isFinite(timestampMs)) {
+    return toDatetime(raw.created_at);
+  }
+
+  return new Date(Number(timestampMs)).toISOString();
+}
+
 function toInteger(value: unknown): number | null {
   const numeric = toNumber(value);
   if (numeric === null) {
@@ -191,7 +202,7 @@ function normalizeLatestItem(row: unknown): SensorLatestItem | null {
     ratio: toNumber(raw.ratio),
     ppm: toNumber(raw.ppm),
     unit: toStringValue(raw.unit) || "ppm",
-    created_at: toDatetime(raw.created_at),
+    created_at: toDatetimeFromBestTimestamp(raw),
     device_id: toStringValue(raw.device_id)
   };
 }
@@ -219,7 +230,7 @@ function normalizeHistoryItem(row: unknown): SensorHistoryItem | null {
   return {
     id: toInteger(raw.id),
     device_id: toStringValue(raw.device_id),
-    created_at: toDatetime(raw.created_at),
+    created_at: toDatetimeFromBestTimestamp(raw),
     mq135: sensorPpm("mq135"),
     nh3_mics: sensorPpm("nh3_mics"),
     co: sensorPpm("co"),
@@ -416,7 +427,7 @@ export async function fetchLatestAllSensors(
   }
 
   const raw = payload as Record<string, unknown>;
-  const rawItems = Array.isArray(raw.items) ? raw.items : [];
+  const rawItems = extractResponseItems(payload);
   const items = rawItems.map(normalizeLatestItem).filter((value): value is SensorLatestItem => Boolean(value));
   const countValue = toInteger(raw.count);
 
@@ -459,7 +470,7 @@ export async function fetchSensorHistory(
   }
 
   const raw = payload as Record<string, unknown>;
-  const rawItems = Array.isArray(raw.items) ? raw.items : [];
+  const rawItems = extractResponseItems(payload);
   const items = rawItems.map(normalizeHistoryItem).filter((value): value is SensorHistoryItem => Boolean(value));
 
   items.sort((left, right) => {
@@ -495,7 +506,7 @@ export async function fetchSensorHistoryUnprocessed(
   }
 
   const raw = payload as Record<string, unknown>;
-  const rawItems = Array.isArray(raw.items) ? raw.items : [];
+  const rawItems = extractResponseItems(payload);
   const items = rawItems
     .filter((item) => item && typeof item === "object" && !Array.isArray(item))
     .map((item) => {

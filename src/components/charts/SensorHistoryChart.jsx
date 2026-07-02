@@ -1,5 +1,6 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import ApexCharts from "apexcharts";
+import { normalizeSensorName, prepareSensorChartPoints } from "@/utils/chartData";
 
 const JAKARTA_TIME_ZONE = "Asia/Jakarta";
 
@@ -100,23 +101,23 @@ function SensorHistoryChart({ rows, sensors }) {
     return () => observer.disconnect();
   }, []);
 
+  const normalizedSensors = useMemo(
+    () => (Array.isArray(sensors) ? sensors.map((sensor) => normalizeSensorName(sensor)).filter(Boolean) : []),
+    [sensors]
+  );
+
   const series = useMemo(
     () =>
-      sensors.map((sensor) => ({
+      normalizedSensors.map((sensor) => ({
         name: labelForSensor(sensor),
-        data: rows
-          .map((row) => ({
-            x: Date.parse(row.created_at ?? ""),
-            y: Number(row[sensor])
-          }))
-          .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y))
+        data: prepareSensorChartPoints(rows, sensor).map((point) => [point.x, point.y])
       })),
-    [rows, sensors]
+    [normalizedSensors, rows]
   );
 
   const colors = useMemo(
-    () => sensors.map((sensor) => SENSOR_COLORS[sensor] ?? "#34cfff"),
-    [sensors]
+    () => normalizedSensors.map((sensor) => SENSOR_COLORS[sensor] ?? "#34cfff"),
+    [normalizedSensors]
   );
 
   const options = useMemo(

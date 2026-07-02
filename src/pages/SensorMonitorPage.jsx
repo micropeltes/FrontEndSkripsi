@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { getSensorRisk } from "@/utils/hazardEvents";
+import { getBestTimestampMs, normalizeSensorName } from "@/utils/chartData";
 import {
   FALLBACK_SENSORS,
   fetchLatestAllSensors,
@@ -180,10 +181,13 @@ export default function SensorMonitorPage({ fluid = false }) {
         return;
       }
 
-      const key = item.sensor;
+      const key = normalizeSensorName(item.sensor);
+      if (!key) {
+        return;
+      }
       const current = map.get(key);
-      const currentTime = current?.created_at ? Date.parse(current.created_at) : Number.NEGATIVE_INFINITY;
-      const nextTime = item.created_at ? Date.parse(item.created_at) : Number.NEGATIVE_INFINITY;
+      const currentTime = getBestTimestampMs(current) ?? Number.NEGATIVE_INFINITY;
+      const nextTime = getBestTimestampMs(item) ?? Number.NEGATIVE_INFINITY;
 
       if (!current || nextTime >= currentTime) {
         map.set(key, item);

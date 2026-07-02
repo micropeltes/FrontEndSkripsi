@@ -17,9 +17,9 @@ const EXTRA_LINKS = [
   { to: "/thresholds", label: "Threshold" },
   { to: "/compare", label: "Compare" },
   { to: "/reports/pdf", label: "PDF" },
-  { to: "/history", label: "History" },
-  { to: "/tools/convert", label: "Convert ADC" },
-  { to: "/calibration", label: "Calibration" }
+  { to: "/history", label: "History" }
+  // { to: "/tools/convert", label: "Convert ADC" },
+  // { to: "/calibration", label: "Calibration" }
 ];
 
 export default function Navbar({

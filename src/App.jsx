@@ -8,8 +8,8 @@ const LandingPage = lazy(() => import("./pages/LandingPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const SensorMonitorPage = lazy(() => import("./pages/SensorMonitorPage"));
 const SensorHistoryPage = lazy(() => import("./pages/SensorHistoryPage"));
-const SensorConvertPage = lazy(() => import("./pages/SensorConvertPage"));
-const CalibrationManagerPage = lazy(() => import("./pages/CalibrationManagerPage"));
+// const SensorConvertPage = lazy(() => import("./pages/SensorConvertPage"));
+// const CalibrationManagerPage = lazy(() => import("./pages/CalibrationManagerPage"));
 const NervCommandViewPage = lazy(() => import("./pages/NervCommandViewPage"));
 const ThresholdSettingsPage = lazy(() => import("./pages/ThresholdSettingsPage"));
 const ExportPdfPage = lazy(() => import("./pages/ExportPdfPage"));
@@ -256,7 +256,7 @@ export default function App() {
             </StandalonePageShell>
           )}
         />
-        <Route
+        {/* <Route
           path="/tools/convert"
           element={(
             <StandalonePageShell
@@ -269,7 +269,7 @@ export default function App() {
               <SensorConvertPage />
             </StandalonePageShell>
           )}
-        />
+        /> */}
 
         <Route
           path="/command"
@@ -327,7 +327,7 @@ export default function App() {
             </StandalonePageShell>
           )}
         />
-        <Route path="/tools/calibration" element={<Navigate to="/calibration" replace />} />
+        {/* <Route path="/tools/calibration" element={<Navigate to="/calibration" replace />} />
         <Route
           path="/calibration"
           element={(
@@ -341,7 +341,7 @@ export default function App() {
               <CalibrationManagerPage />
             </StandalonePageShell>
           )}
-        />
+        /> */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

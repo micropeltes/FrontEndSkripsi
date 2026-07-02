@@ -5,6 +5,19 @@ import { sanitizeDeviceId, sanitizeLimit } from "@/services/sensorService";
 const DEFAULT_LIMIT = 1000;
 const RECONNECT_DELAYS_MS = [1000, 2000, 5 * 1000, 10 * 1000];
 const HEARTBEAT_MS = 15 * 1000;
+const DEBUG_SENSOR_WS = import.meta.env.DEV && import.meta.env.VITE_DEBUG_SENSOR_WS === "true";
+
+function debugSensorWs(...args) {
+  if (DEBUG_SENSOR_WS) {
+    console.info(...args);
+  }
+}
+
+function warnSensorWs(...args) {
+  if (DEBUG_SENSOR_WS) {
+    console.warn(...args);
+  }
+}
 
 function createInitialState() {
   return {
@@ -77,13 +90,13 @@ export function useSensorWebSocket(options = {}) {
     });
 
     const wsUrl = buildSensorWebSocketUrl(query);
-    console.info("[SensorWS] connecting to", wsUrl);
+    debugSensorWs("[SensorWS] connecting to", wsUrl);
 
     const socket = new WebSocket(wsUrl);
     socketRef.current = socket;
 
     socket.onopen = () => {
-      console.info("[SensorWS] open");
+      debugSensorWs("[SensorWS] open");
       reconnectAttemptRef.current = 0;
       setHealthStatus("connected", {
         reconnectAttempt: 0,
@@ -93,7 +106,6 @@ export function useSensorWebSocket(options = {}) {
     };
 
     socket.onmessage = (event) => {
-      console.info("[SensorWS] message", event.data);
       let parsed = null;
       try {
         parsed = JSON.parse(event.data);
@@ -103,6 +115,7 @@ export function useSensorWebSocket(options = {}) {
 
       const lastMessageAt = new Date().toISOString();
       const normalized = normalizeSensorWebSocketMessage(parsed, query.deviceId);
+      debugSensorWs("[SensorWS] message", normalized.type, normalized.payload?.count ?? "");
 
       if ((normalized.type === "snapshot" || normalized.type === "update" || normalized.type === "data") && normalized.payload) {
         setState((current) => ({
@@ -168,7 +181,7 @@ export function useSensorWebSocket(options = {}) {
     };
 
     socket.onclose = (event) => {
-      console.warn("[SensorWS] close", event.code, event.reason);
+      warnSensorWs("[SensorWS] close", event.code, event.reason);
       window.clearTimeout(heartbeatTimerRef.current);
       if (closedByUserRef.current) {
         setHealthStatus("disconnected");
